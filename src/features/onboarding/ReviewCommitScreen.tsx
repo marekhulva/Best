@@ -99,8 +99,9 @@ export const ReviewCommitScreen: React.FC<Props> = ({
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0A0A0A', '#1C1C1C', '#0A0A0A']}
+        colors={['#000000', '#000000', '#000000']}
         style={StyleSheet.absoluteFillObject}
+        locations={[0, 0.5, 1]}
       />
       
       {/* Animated background particles */}

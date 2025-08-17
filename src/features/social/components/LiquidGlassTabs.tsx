@@ -7,6 +7,8 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
+  withRepeat,
+  withSequence,
   interpolate,
   Easing,
 } from 'react-native-reanimated';
@@ -28,19 +30,33 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
 }) => {
   const slideAnim = useSharedValue(activeTab === 'circle' ? 0 : 1);
   const glowAnim = useSharedValue(0);
+  const pulseAnim = useSharedValue(0);
   const isLuxury = true; // Always use luxury theme to match onboarding
   const styles = React.useMemo(() => createStyles(isLuxury), [isLuxury]);
+  
+  // Continuous pulse for active tab
+  React.useEffect(() => {
+    pulseAnim.value = withRepeat(
+      withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, []);
 
   React.useEffect(() => {
     slideAnim.value = withSpring(activeTab === 'circle' ? 0 : 1, {
-      damping: 20,
-      stiffness: 200,
+      damping: 15,
+      stiffness: 150,
+      mass: 0.8,
     });
     
-    // Pulse glow on change
-    glowAnim.value = withTiming(1, { duration: 200 }, () => {
-      glowAnim.value = withTiming(0, { duration: 400 });
-    });
+    // Burst glow on change
+    glowAnim.value = withSequence(
+      withTiming(1, { duration: 150 }),
+      withTiming(0.7, { duration: 100 }),
+      withTiming(1, { duration: 100 }),
+      withTiming(0, { duration: 300 })
+    );
   }, [activeTab]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
@@ -51,6 +67,11 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
 
   const glowStyle = useAnimatedStyle(() => ({
     opacity: interpolate(glowAnim.value, [0, 1], [0.5, 1]),
+    shadowRadius: interpolate(glowAnim.value, [0, 1], [10, 20]),
+  }));
+  
+  const pulseStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulseAnim.value, [0, 1], [0.3, 0.6]),
   }));
 
   return (
@@ -78,26 +99,23 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
           </>
         ) : null}
         
-        {/* Active indicator with conditional styling */}
+        {/* Active indicator with enhanced glow */}
         <Animated.View style={[styles.indicator, indicatorStyle]}>
-          {isLuxury && typeof LuxuryColors !== 'undefined' ? (
-            <View style={[styles.indicatorGradient, { backgroundColor: LuxuryColors.glow.goldSubtle }]} />
-          ) : (
+          <LinearGradient
+            colors={['rgba(255, 215, 0, 0.15)', 'rgba(255, 215, 0, 0.05)']}
+            style={styles.indicatorGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+          <Animated.View style={[styles.indicatorGlow, glowStyle]}>
             <LinearGradient
-              colors={activeTab === 'circle' ? 
-                ['rgba(231,180,58,0.3)', 'rgba(231,180,58,0.15)'] : 
-                ['rgba(192,192,192,0.3)', 'rgba(192,192,192,0.15)']
-              }
-              style={styles.indicatorGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+              colors={['rgba(255, 215, 0, 0.3)', 'transparent']}
+              style={StyleSheet.absoluteFillObject}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
             />
-          )}
-          <Animated.View style={[
-            styles.indicatorGlow, 
-            glowStyle,
-            isLuxury && typeof LuxuryColors !== 'undefined' && { borderColor: LuxuryColors.gold.primary }
-          ]} />
+          </Animated.View>
+          <Animated.View style={[styles.indicatorPulse, pulseStyle]} />
         </Animated.View>
         
         {/* Tab buttons */}
@@ -106,28 +124,30 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
             style={styles.tab}
             onPress={() => onTabChange('circle')}
           >
-            <Text style={[
-              styles.tabText,
-              activeTab === 'circle' && styles.tabTextActive,
-              isLuxury && typeof LuxuryColors !== 'undefined' && { 
-                color: activeTab === 'circle' ? LuxuryColors.gold.primary : LuxuryColors.silver.bright 
-              }
-            ]}>
-              {!isLuxury && '👥 '}Circle
-            </Text>
+            <View style={styles.tabContent}>
+              {activeTab === 'circle' && (
+                <View style={styles.activeIndicatorDot} />
+              )}
+              <Text style={[
+                styles.tabText,
+                activeTab === 'circle' && styles.tabTextActive
+              ]}>
+                YOUR CIRCLE
+              </Text>
+              {activeTab === 'circle' && (
+                <View style={styles.tabBadge}>
+                  <Text style={styles.tabBadgeText}>12</Text>
+                </View>
+              )}
+            </View>
             {activeTab === 'circle' && (
               <Animated.View style={[styles.underline, glowStyle]}>
-                {isLuxury && typeof LuxuryColors !== 'undefined' ? (
-                  <View style={[styles.underlineGradient, { backgroundColor: LuxuryColors.gold.primary }]} />
-                ) : (
-                  <LinearGradient
-                    colors={['#FFD700', '#FFA500', '#FFD700']}
-                    style={styles.underlineGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    locations={[0, 0.5, 1]}
-                  />
-                )}
+                <LinearGradient
+                  colors={['#FFD700', '#FFA500']}
+                  style={styles.underlineGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                />
               </Animated.View>
             )}
           </Pressable>
@@ -136,28 +156,30 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
             style={styles.tab}
             onPress={() => onTabChange('follow')}
           >
-            <Text style={[
-              styles.tabText,
-              activeTab === 'follow' && styles.tabTextActive,
-              isLuxury && typeof LuxuryColors !== 'undefined' && { 
-                color: activeTab === 'follow' ? LuxuryColors.gold.primary : LuxuryColors.silver.bright 
-              }
-            ]}>
-              {!isLuxury && '🌍 '}Following
-            </Text>
+            <View style={styles.tabContent}>
+              {activeTab === 'follow' && (
+                <View style={styles.activeIndicatorDot} />
+              )}
+              <Text style={[
+                styles.tabText,
+                activeTab === 'follow' && styles.tabTextActive
+              ]}>
+                DISCOVER
+              </Text>
+              {activeTab === 'follow' && (
+                <View style={styles.tabBadge}>
+                  <Text style={styles.tabBadgeText}>28</Text>
+                </View>
+              )}
+            </View>
             {activeTab === 'follow' && (
               <Animated.View style={[styles.underline, glowStyle]}>
-                {isLuxury && typeof LuxuryColors !== 'undefined' ? (
-                  <View style={[styles.underlineGradient, { backgroundColor: LuxuryColors.gold.primary }]} />
-                ) : (
-                  <LinearGradient
-                    colors={['#C0C0C0', '#E5E4E2', '#C0C0C0']}
-                    style={styles.underlineGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    locations={[0, 0.5, 1]}
-                  />
-                )}
+                <LinearGradient
+                  colors={['#FFD700', '#FFA500']}
+                  style={styles.underlineGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                />
               </Animated.View>
             )}
           </Pressable>
@@ -169,25 +191,23 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
 
 const createStyles = (isLuxury: boolean) => StyleSheet.create({
   container: {
-    marginHorizontal: 20,
-    marginVertical: 16,
-    height: 56,
-    borderRadius: 20,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    height: 54,
+    borderRadius: 27,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(231, 180, 58, 0.1)',
-    shadowColor: LuxuryTheme.colors.primary.gold,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: isLuxury ? 8 : 12,
-    elevation: isLuxury ? 3 : 5,
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
   },
   blurContainer: {
     flex: 1,
-    borderRadius: 26,
+    borderRadius: 27,
     borderWidth: 1,
-    borderColor: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.gold.primary : 'rgba(255,255,255,0.15)',
-    backgroundColor: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.black.pure : 'rgba(18,18,18,0.5)',
+    borderColor: 'rgba(255, 215, 0, 0.1)',
+    backgroundColor: 'rgba(10, 10, 10, 0.9)',
   },
   indicator: {
     position: 'absolute',
@@ -207,12 +227,21 @@ const createStyles = (isLuxury: boolean) => StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
-    shadowColor: '#FFF',
+    overflow: 'hidden',
+    shadowColor: '#FFD700',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
+  },
+  indicatorPulse: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    right: -10,
+    bottom: -10,
+    borderRadius: 34,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
   },
   tabsRow: {
     flexDirection: 'row',
@@ -224,18 +253,42 @@ const createStyles = (isLuxury: boolean) => StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
+  tabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  activeIndicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFD700',
+  },
   tabText: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '700',
-    color: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.silver.bright : 'rgba(255,255,255,0.5)',
-    letterSpacing: 0.5,
+    color: 'rgba(255, 255, 255, 0.4)',
+    letterSpacing: 1,
   },
   tabTextActive: {
-    color: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.gold.primary : '#FFFFFF',
-    textShadowColor: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.glow.gold : 'rgba(255,255,255,0.6)',
+    color: '#FFD700',
+    textShadowColor: 'rgba(255, 215, 0, 0.5)',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: isLuxury ? 6 : 10,
+    textShadowRadius: 8,
     fontWeight: '800',
+  },
+  tabBadge: {
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  tabBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFD700',
   },
   underline: {
     position: 'absolute',

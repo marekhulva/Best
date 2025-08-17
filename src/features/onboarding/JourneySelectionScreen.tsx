@@ -145,8 +145,9 @@ export const JourneySelectionScreen: React.FC<Props> = ({
       <StatusBar barStyle="light-content" />
       
       <LinearGradient
-        colors={LuxuryTheme.gradientPresets.obsidianDepth}
+        colors={['#000000', '#000000', '#000000']}
         style={StyleSheet.absoluteFillObject}
+        locations={[0, 0.5, 1]}
       />
       
       <Animated.View style={[styles.content, containerStyle]}>

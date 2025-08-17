@@ -60,7 +60,7 @@ export const GoalSettingScreen: React.FC<Props> = ({ onSubmit, onBack }) => {
     targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(1); // Skip category selection, start at goal
   const progressWidth = useSharedValue(0);
 
   useEffect(() => {
@@ -79,9 +79,22 @@ export const GoalSettingScreen: React.FC<Props> = ({ onSubmit, onBack }) => {
   };
 
   const handleGoalTitleSubmit = () => {
-    if (goal.title && goal.title.trim().length > 0) {
-      setCurrentStep(2);
+    if (!goal.title || goal.title.trim().length === 0) {
+      return;
     }
+    
+    // Skip the why step and submit directly
+    const completeGoal: OnboardingGoal = {
+      title: goal.title,
+      category: goal.category as any,
+      targetDate: goal.targetDate || new Date(),
+      why: '', // Empty why since we're skipping it
+      targetValue: goal.targetValue,
+      unit: goal.unit,
+      currentValue: goal.currentValue,
+    };
+    
+    onSubmit(completeGoal);
   };
 
   const handleWhySubmit = () => {
@@ -247,7 +260,7 @@ export const GoalSettingScreen: React.FC<Props> = ({ onSubmit, onBack }) => {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           />
-          <Text style={styles.continueButtonText}>Continue</Text>
+          <Text style={styles.continueButtonText}>Set Goal</Text>
         </HapticButton>
       </View>
       </Animated.View>
@@ -319,8 +332,9 @@ export const GoalSettingScreen: React.FC<Props> = ({ onSubmit, onBack }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <LinearGradient
-        colors={LuxuryTheme.gradientPresets.obsidianDepth}
+        colors={['#000000', '#000000', '#000000']}
         style={StyleSheet.absoluteFillObject}
+        locations={[0, 0.5, 1]}
       />
 
       <View style={styles.progressBar}>
@@ -335,9 +349,11 @@ export const GoalSettingScreen: React.FC<Props> = ({ onSubmit, onBack }) => {
       </View>
 
       <View style={styles.stepsContainer}>
-        {currentStep === 0 && renderCategoryStep()}
+        {/* Category step skipped - starting directly with goal */}
+        {/* currentStep === 0 && renderCategoryStep() */}
         {currentStep === 1 && renderGoalStep()}
-        {currentStep === 2 && renderWhyStep()}
+        {/* Why step removed - going directly from goal to milestones */}
+        {/* currentStep === 2 && renderWhyStep() */}
       </View>
 
       {currentStep > 0 && (

@@ -514,8 +514,9 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={LuxuryTheme.gradientPresets.obsidianDepth}
+        colors={['#000000', '#000000', '#000000']}
         style={StyleSheet.absoluteFillObject}
+        locations={[0, 0.5, 1]}
       />
       
       <View style={styles.header}>

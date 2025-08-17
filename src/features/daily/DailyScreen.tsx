@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, Dimensions, Pressable } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -8,24 +8,24 @@ import Animated, {
   interpolate,
   Easing,
   FadeInDown,
+  FadeIn,
   withSpring,
+  withSequence,
+  withDelay,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useStore } from '../../state/rootStore';
-import { GlassSurface } from '../../ui/GlassSurface';
 import { RadialProgress } from '../../ui/RadialProgress';
 import { HapticButton } from '../../ui/HapticButton';
 import { ConfettiView } from '../../ui/ConfettiView';
-import { useShimmer } from '../../design/useShimmer';
 import { DailyReviewModal } from './DailyReviewModalEnhanced';
 import { ActionItem } from './ActionItem';
 import { SocialSharePrompt } from '../social/SocialSharePrompt';
-import { LuxuryTheme } from '../../design/luxuryTheme';
-import { Sparkles, Calendar, TrendingUp } from 'lucide-react-native';
+import { Sparkles, Zap, Trophy, TrendingUp, Clock, Calendar, Target } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export const DailyScreen = () => {
   const actions = useStore(s=>s.actions);
@@ -34,149 +34,193 @@ export const DailyScreen = () => {
   const openReview = useStore(s=>s.openDailyReview);
   const [showSharePrompt, setShowSharePrompt] = useState(false);
   const allCompleted = actions.length > 0 && completed === actions.length;
-  const pulseAnimation = useSharedValue(0);
-  const { shimmerStyle, glowStyle } = useShimmer(progress > 90);
   
-  // Show share prompt when progress reaches milestones
+  // Animations
+  const pulseAnimation = useSharedValue(0);
+  const progressScale = useSharedValue(0);
+  const glowIntensity = useSharedValue(0);
+  const heroCardScale = useSharedValue(0.95);
+  const streakAnimation = useSharedValue(0);
+  
+  // Calculate streak (mock data for now)
+  const currentStreak = 7;
+  const bestStreak = 21;
+  
+  // Trigger share prompt at milestones
   useEffect(() => {
     if (progress >= 70 && progress < 100 && !showSharePrompt) {
       setTimeout(() => setShowSharePrompt(true), 2000);
     }
   }, [progress]);
 
-  // Pulse animation for Review Day button in evening
+  // Initial load animations
+  useEffect(() => {
+    heroCardScale.value = withSpring(1, { damping: 15, stiffness: 100 });
+    progressScale.value = withDelay(200, withSpring(1, { damping: 12 }));
+    
+    // Streak fire animation
+    if (currentStreak > 0) {
+      streakAnimation.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1
+      );
+    }
+  }, []);
+
+  // Progress change animation
+  useEffect(() => {
+    glowIntensity.value = withSequence(
+      withTiming(1, { duration: 300 }),
+      withTiming(progress / 100, { duration: 500 })
+    );
+  }, [progress]);
+
+  // Evening pulse for review
   useEffect(() => {
     const hour = new Date().getHours();
-    if (hour >= 18) { // After 6 PM
+    if (hour >= 18) {
       pulseAnimation.value = withRepeat(
-        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
         -1,
         true
       );
     }
   }, []);
 
-  const pulseAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: interpolate(pulseAnimation.value, [0, 1], [1, 1.02]) }
-    ],
+  const heroCardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: heroCardScale.value }],
   }));
 
-  const getMotivationalText = () => {
-    if (progress === 100) return 'Perfect Day! You crushed it! 🏆';
-    if (progress >= 90) return 'Almost there! Finish strong! ⚡';
-    if (progress >= 70) return 'Great momentum! Keep going! 🔥';
-    if (progress >= 50) return "You're halfway there! 💪";
-    if (progress > 0) return 'Good start! Build that momentum! 🚀';
-    return 'Ready to make today count? ✨';
+  const progressRingStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: progressScale.value }],
+  }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    shadowOpacity: interpolate(glowIntensity.value, [0, 1], [0.1, 0.4]),
+    shadowRadius: interpolate(glowIntensity.value, [0, 1], [8, 24]),
+  }));
+
+  const streakGlowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(streakAnimation.value, [0, 1], [0.6, 1]),
+    transform: [{ scale: interpolate(streakAnimation.value, [0, 1], [1, 1.1]) }],
+  }));
+
+  const getTimeOfDay = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return { greeting: 'Good Morning', emoji: '☀️' };
+    if (hour < 18) return { greeting: 'Good Afternoon', emoji: '🌤' };
+    return { greeting: 'Good Evening', emoji: '🌙' };
   };
+
+  const { greeting, emoji } = getTimeOfDay();
 
   return (
     <View style={styles.container}>
-      {/* Luxury Gradient Background matching onboarding */}
-      <LinearGradient
-        colors={['#0A0A0A', '#1A1A1A', '#0A0A0A']}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+      {/* Pure Black Background */}
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#000000' }]} />
       
-      {/* Subtle Gold Accent Gradient */}
-      <LinearGradient
-        colors={['rgba(231, 180, 58, 0.03)', 'transparent', 'rgba(231, 180, 58, 0.02)']}
-        style={[StyleSheet.absoluteFillObject, { opacity: 0.5 }]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-      />
       
       <ScrollView 
         style={styles.scrollView} 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Elegant Header */}
+        {/* Time-based Greeting */}
         <Animated.View 
-          entering={FadeInDown.duration(600).springify()}
-          style={styles.header}
+          entering={FadeInDown.duration(500).springify()}
+          style={styles.greetingContainer}
         >
-          <View style={styles.dateContainer}>
-            <Calendar size={14} color={LuxuryTheme.colors.text.tertiary} />
-            <Text style={styles.dateText}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </Text>
-          </View>
-          <Text style={styles.title}>Daily Mission</Text>
-          <Text style={styles.subtitle}>{getMotivationalText()}</Text>
+          <Text style={styles.emoji}>{emoji}</Text>
+          <Text style={styles.greeting}>{greeting}</Text>
+          <Text style={styles.date}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+          </Text>
         </Animated.View>
 
-        {/* Premium Progress Card */}
+        {/* Hero Progress Card - Simplified */}
         <Animated.View 
           entering={FadeInDown.delay(100).springify()}
-          style={[styles.progressCard, pulseAnimatedStyle]}
+          style={[styles.heroCard, heroCardStyle]}
         >
-          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFillObject} />
+          {/* Minimal gradient */}
           <LinearGradient
-            colors={['rgba(231, 180, 58, 0.05)', 'rgba(231, 180, 58, 0.02)']}
+            colors={['rgba(255, 255, 255, 0.03)', 'transparent']}
             style={StyleSheet.absoluteFillObject}
           />
           
-          {/* Radial Progress with Premium Styling */}
-          <View style={styles.progressContainer}>
-            <Animated.View style={[styles.progressWrapper, progress > 90 && glowStyle]}>
-              <RadialProgress progress={progress} size={140} strokeWidth={8} />
-              {progress > 90 && (
-                <Animated.View style={[StyleSheet.absoluteFillObject, shimmerStyle]}>
-                  <LinearGradient
-                    colors={['transparent', `${LuxuryTheme.colors.primary.gold}20`, 'transparent']}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={StyleSheet.absoluteFillObject}
-                  />
-                </Animated.View>
-              )}
-            </Animated.View>
+          {/* Main Progress Ring */}
+          <Animated.View style={[styles.progressRing, progressRingStyle]}>
+            <RadialProgress 
+              progress={progress} 
+              size={160} 
+              strokeWidth={6}
+              color={progress === 100 ? '#FFD700' : '#FFFFFF'}
+            />
             
-            <View style={styles.progressStats}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{completed}</Text>
-                <Text style={styles.statLabel}>Done</Text>
-              </View>
-              
-              <View style={styles.statDivider} />
-              
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{actions.length - completed}</Text>
-                <Text style={styles.statLabel}>Left</Text>
-              </View>
-              
-              <View style={styles.statDivider} />
-              
-              <View style={styles.statItem}>
-                <Text style={[styles.statNumber, { color: LuxuryTheme.colors.primary.gold }]}>
-                  {Math.round(progress)}%
-                </Text>
-                <Text style={styles.statLabel}>Progress</Text>
-              </View>
+            {/* Center Stats */}
+            <View style={styles.progressCenter}>
+              <Text style={styles.progressPercentage}>{Math.round(progress)}</Text>
+              <Text style={styles.progressPercentSymbol}>%</Text>
             </View>
+          </Animated.View>
+          
+          {/* Quick Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{completed}</Text>
+              <Text style={styles.statLabel}>Done</Text>
+            </View>
+            
+            <View style={styles.statDivider} />
+            
+            {/* Streak */}
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, styles.streakValue]}>{currentStreak}</Text>
+              <Text style={styles.statLabel}>Streak</Text>
+            </View>
+            
+            <View style={styles.statDivider} />
+            
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{actions.length}</Text>
+              <Text style={styles.statLabel}>Total</Text>
+            </View>
+          </View>
+          
+          {/* Motivational Message */}
+          <View style={styles.messageContainer}>
+            {progress === 100 ? (
+              <View style={styles.completionMessage}>
+                <Text style={styles.completionText}>Complete ✓</Text>
+              </View>
+            ) : progress >= 80 ? (
+              <Text style={styles.motivationText}>So close</Text>
+            ) : progress >= 50 ? (
+              <Text style={styles.motivationText}>Halfway there</Text>
+            ) : progress > 0 ? (
+              <Text style={styles.motivationText}>Good start</Text>
+            ) : (
+              <Text style={styles.motivationText}>Start your day</Text>
+            )}
           </View>
         </Animated.View>
 
-        {/* Actions Section with Premium Design */}
-        {actions.length > 0 ? (
-          <Animated.View 
-            entering={FadeInDown.delay(200).springify()}
-            style={styles.actionsSection}
-          >
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleContainer}>
-                <TrendingUp size={16} color={LuxuryTheme.colors.primary.gold} />
-                <Text style={styles.sectionTitle}>TODAY'S ACTIONS</Text>
-              </View>
+
+        {/* Actions List - The Core Loop */}
+        <View style={styles.actionsContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>TODAY'S MISSION</Text>
+            {actions.length > 0 && (
               <View style={styles.sectionBadge}>
-                <Text style={styles.sectionBadgeText}>{actions.length}</Text>
+                <Text style={styles.sectionBadgeText}>{completed}/{actions.length}</Text>
               </View>
-            </View>
-            
+            )}
+          </View>
+          
+          {actions.length > 0 ? (
             <View style={styles.actionsList}>
               {actions.map((action, index) => (
                 <Animated.View
@@ -193,60 +237,46 @@ export const DailyScreen = () => {
                 </Animated.View>
               ))}
             </View>
-          </Animated.View>
-        ) : (
-          <Animated.View 
-            entering={FadeInDown.delay(200).springify()}
-            style={styles.emptyState}
-          >
-            <View style={styles.emptyIcon}>
-              <Sparkles size={48} color={LuxuryTheme.colors.text.tertiary} />
-            </View>
-            <Text style={styles.emptyTitle}>No Actions Yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Complete your onboarding to set up your daily actions
-            </Text>
-          </Animated.View>
-        )}
+          ) : (
+            <Animated.View 
+              entering={FadeIn.duration(600)}
+              style={styles.emptyState}
+            >
+              <View style={styles.emptyIcon}>
+                <Sparkles size={40} color="rgba(255, 255, 255, 0.3)" />
+              </View>
+              <Text style={styles.emptyTitle}>Set Your Daily Actions</Text>
+              <Text style={styles.emptySubtitle}>Complete onboarding to start your journey</Text>
+            </Animated.View>
+          )}
+        </View>
 
-        {/* Premium Review Button */}
+        {/* Review CTA - Simplified */}
         {(new Date().getHours() >= 18 || allCompleted) && (
           <Animated.View 
             entering={FadeInDown.delay(400).springify()}
-            style={styles.reviewButtonContainer}
+            style={styles.reviewContainer}
           >
             <HapticButton 
               onPress={openReview} 
               style={styles.reviewButton}
               hapticType="medium"
             >
-              <LinearGradient
-                colors={[LuxuryTheme.colors.primary.gold, LuxuryTheme.colors.primary.champagne]}
-                style={StyleSheet.absoluteFillObject}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-              <View style={styles.reviewButtonContent}>
-                <Sparkles size={20} color="#000" />
-                <Text style={styles.reviewButtonText}>Review Your Day</Text>
-              </View>
+              <Text style={styles.reviewText}>Review Day</Text>
             </HapticButton>
           </Animated.View>
         )}
       </ScrollView>
 
-      {/* Modals and Overlays */}
       <DailyReviewModal />
-      
       <SocialSharePrompt
         visible={showSharePrompt}
         onClose={() => setShowSharePrompt(false)}
         progress={progress}
         completedActions={completed}
         totalActions={actions.length}
-        streak={7}
+        streak={currentStreak}
       />
-      
       <ConfettiView active={allCompleted} />
     </View>
   );
@@ -255,164 +285,236 @@ export const DailyScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#000',
+  },
+  glowOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    shadowColor: '#FFD700',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingHorizontal: 16,
     paddingBottom: 100,
   },
-  header: {
-    marginBottom: 24,
-  },
-  dateContainer: {
-    flexDirection: 'row',
+  greetingContainer: {
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
+    marginBottom: 20,
   },
-  dateText: {
-    fontSize: 12,
-    color: LuxuryTheme.colors.text.tertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    fontWeight: '600',
-  },
-  title: { 
-    fontSize: 36,
-    fontWeight: '300',
-    color: LuxuryTheme.colors.text.primary,
-    letterSpacing: -0.5,
+  emoji: {
+    fontSize: 32,
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 15,
-    color: LuxuryTheme.colors.primary.gold,
-    fontWeight: '500',
-    letterSpacing: 0.3,
+  greeting: {
+    fontSize: 24,
+    fontWeight: '300',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
-  progressCard: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    marginBottom: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  date: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 4,
+    letterSpacing: 0.5,
+  },
+  heroCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderWidth: 1,
-    borderColor: 'rgba(231, 180, 58, 0.1)',
-  },
-  progressContainer: { 
-    padding: 32,
+    borderColor: 'rgba(255, 255, 255, 0.03)',
+    overflow: 'hidden',
     alignItems: 'center',
   },
-  progressWrapper: {
+  progressRing: {
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 24,
   },
-  progressStats: {
+  progressCenter: {
+    position: 'absolute',
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  progressPercentage: {
+    fontSize: 48,
+    fontWeight: '200',
+    color: '#FFFFFF',
+  },
+  progressPercentSymbol: {
+    fontSize: 24,
+    fontWeight: '300',
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginLeft: 2,
+  },
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 24,
+    width: '100%',
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   statItem: {
+    flex: 1,
     alignItems: 'center',
   },
-  statNumber: {
-    fontSize: 24,
+  streakItem: {
+    transform: [{ scale: 1.1 }],
+  },
+  statIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: 18,
     fontWeight: '600',
-    color: LuxuryTheme.colors.text.primary,
-    marginBottom: 4,
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  streakValue: {
+    color: '#FFFFFF',
   },
   statLabel: {
     fontSize: 11,
-    color: LuxuryTheme.colors.text.tertiary,
+    color: 'rgba(255, 255, 255, 0.4)',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   statDivider: {
     width: 1,
-    height: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  actionsSection: {
-    marginBottom: 32,
+  messageContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  completionMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  completionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFD700',
+  },
+  motivationText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+  },
+  timePressureCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(96, 165, 250, 0.1)',
+  },
+  timePressureHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  timePressureTitle: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  timeRemaining: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#60A5FA',
+    marginBottom: 12,
+  },
+  timePressureBar: {
+    height: 4,
+    backgroundColor: 'rgba(96, 165, 250, 0.1)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  timePressureFill: {
+    height: '100%',
+    backgroundColor: '#60A5FA',
+  },
+  actionsContainer: {
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  sectionTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: LuxuryTheme.colors.text.secondary,
-    textTransform: 'uppercase',
+    color: 'rgba(255, 255, 255, 0.4)',
     letterSpacing: 1.5,
   },
   sectionBadge: {
-    backgroundColor: 'rgba(231, 180, 58, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(231, 180, 58, 0.2)',
+    borderRadius: 10,
   },
   sectionBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: LuxuryTheme.colors.primary.gold,
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   actionsList: {
     gap: 8,
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
+    paddingVertical: 40,
   },
   emptyIcon: {
-    marginBottom: 20,
-    opacity: 0.5,
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
-    color: LuxuryTheme.colors.text.primary,
-    marginBottom: 8,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: LuxuryTheme.colors.text.tertiary,
-    textAlign: 'center',
-    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.4)',
   },
-  reviewButtonContainer: {
-    marginTop: 24,
-    marginBottom: 20,
+  reviewContainer: {
+    marginTop: 8,
+    marginBottom: 24,
   },
   reviewButton: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    height: 56,
-  },
-  reviewButtonContent: {
-    flexDirection: 'row',
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    height: '100%',
   },
-  reviewButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000',
+  reviewText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
     letterSpacing: 0.5,
   },
 });
