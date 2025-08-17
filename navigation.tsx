@@ -6,10 +6,10 @@ import { View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { CheckCircle2, House, BarChart3, User2 } from 'lucide-react-native';
-import { DailyScreenUnified } from './src/features/daily/DailyScreenUnified';
-import { SocialScreenUnified } from './src/features/social/SocialScreenUnified';
-import { ProgressScreenUnified } from './src/features/progress/ProgressScreenUnified';
-import { ProfileScreenUnified } from './src/features/profile/ProfileScreenUnified';
+import { DailyScreen } from './src/features/daily/DailyScreen';
+import { SocialScreen } from './src/features/social/SocialScreen';
+import { ProgressEnhanced } from './src/features/progress/ProgressEnhanced';
+import { ProfileEnhanced } from './src/features/profile/ProfileEnhanced';
 import { OnboardingFlow } from './src/features/onboarding';
 
 const Tab = createBottomTabNavigator();
@@ -52,7 +52,7 @@ const MainTabs = () => {
           },
         }}
       >
-        <Tab.Screen name="Social" component={SocialScreenUnified}
+        <Tab.Screen name="Social" component={SocialScreen}
           options={{ 
             tabBarIcon: ({color,size,focused}) => (
               <View style={{
@@ -64,7 +64,7 @@ const MainTabs = () => {
               </View>
             )
           }} />
-        <Tab.Screen name="Daily" component={DailyScreenUnified}
+        <Tab.Screen name="Daily" component={DailyScreen}
           options={{ 
             tabBarIcon: ({color,size,focused}) => (
               <View style={{
@@ -76,7 +76,7 @@ const MainTabs = () => {
               </View>
             )
           }} />
-        <Tab.Screen name="Progress" component={ProgressScreenUnified}
+        <Tab.Screen name="Progress" component={ProgressEnhanced}
           options={{ 
             tabBarIcon: ({color,size,focused}) => (
               <View style={{
@@ -88,7 +88,7 @@ const MainTabs = () => {
               </View>
             )
           }} />
-        <Tab.Screen name="Profile" component={ProfileScreenUnified}
+        <Tab.Screen name="Profile" component={ProfileEnhanced}
           options={{ 
             tabBarIcon: ({color,size,focused}) => (
               <View style={{
