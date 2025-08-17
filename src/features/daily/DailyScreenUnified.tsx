@@ -27,6 +27,7 @@ import { useStore } from '../../state/rootStore';
 import { HapticButton } from '../../ui/HapticButton';
 import { LuxuryTheme } from '../../design/luxuryTheme';
 import * as Haptics from 'expo-haptics';
+import { DailyReviewModal } from './DailyReviewModalEnhanced';
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,6 +35,7 @@ export const DailyScreenUnified = () => {
   const actions = useStore(s => s.actions);
   const toggleAction = useStore(s => s.toggleAction);
   const goals = useStore(s => s.goals);
+  const openReview = useStore(s => s.openDailyReview);
   
   const completed = actions.filter(a => a.done).length;
   const progress = actions.length ? (completed / actions.length) * 100 : 0;
@@ -259,7 +261,29 @@ export const DailyScreenUnified = () => {
             <Text style={styles.completionSubtitle}>You've completed all tasks</Text>
           </Animated.View>
         )}
+        
+        {/* Review Button for Evening */}
+        {new Date().getHours() >= 18 && (
+          <Animated.View 
+            entering={FadeInDown.springify()}
+            style={styles.reviewButtonContainer}
+          >
+            <HapticButton
+              hapticType="medium"
+              onPress={openReview}
+              style={styles.reviewButton}
+            >
+              <LinearGradient
+                colors={[LuxuryTheme.colors.primary.gold, LuxuryTheme.colors.primary.champagne]}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <Text style={styles.reviewButtonText}>✨ Review Your Day</Text>
+            </HapticButton>
+          </Animated.View>
+        )}
       </ScrollView>
+      
+      <DailyReviewModal />
     </View>
   );
 };
@@ -515,5 +539,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: LuxuryTheme.colors.text.secondary,
     marginTop: 4,
+  },
+  reviewButtonContainer: {
+    marginTop: 24,
+    marginBottom: 20,
+  },
+  reviewButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reviewButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+    textAlign: 'center',
   },
 });

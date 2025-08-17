@@ -13,7 +13,8 @@ import { BlurView } from 'expo-blur';
 import { 
   User, Trophy, Target, Settings, Bell, Shield, 
   HelpCircle, LogOut, ChevronRight, Award, Flame,
-  Star, TrendingUp, Calendar, Clock, Heart, Users
+  Star, TrendingUp, Calendar, Clock, Heart, Users,
+  MessageCircle, RotateCcw
 } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
@@ -33,9 +34,16 @@ const { width } = Dimensions.get('window');
 
 export const ProfileScreenUnified = () => {
   const user = useStore(s => s.user);
+  const profile = useStore(s => s.profile);
   const goals = useStore(s => s.goals);
   const actions = useStore(s => s.actions);
+  const circleFeed = useStore(s => s.circleFeed);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  
+  // Get user's own posts
+  const userPosts = circleFeed.filter(post => post.user === (profile?.name || user?.name || 'User'));
+  const pinnedPosts = userPosts.slice(0, 2);
+  const recentPosts = userPosts.slice(2, 5);
   
   // Calculate stats
   const totalPoints = 2840;
@@ -173,6 +181,104 @@ export const ProfileScreenUnified = () => {
     </Animated.View>
   );
 
+  const renderJourney = () => (
+    <Animated.View 
+      entering={FadeInDown.delay(350).springify()}
+      style={styles.journeyCard}
+    >
+      <View style={styles.cardHeader}>
+        <Target size={20} color={LuxuryTheme.colors.primary.gold} />
+        <Text style={styles.cardTitle}>Current Journey</Text>
+      </View>
+      
+      <View style={styles.journeyContent}>
+        {goals.length === 0 ? (
+          <Text style={styles.emptyText}>Complete onboarding to set your goals</Text>
+        ) : (
+          goals.slice(0, 3).map((goal, index) => (
+            <View key={goal.id} style={styles.journeyGoal}>
+              <View style={styles.goalLeft}>
+                <View style={[styles.goalIndicator, { backgroundColor: ['#FFD700', '#60A5FA', '#22C55E'][index % 3] }]} />
+                <View style={styles.goalInfo}>
+                  <Text style={styles.goalName}>{goal.title}</Text>
+                  <Text style={styles.goalCategory}>{goal.category}</Text>
+                </View>
+              </View>
+              <View style={styles.goalProgress}>
+                <Text style={styles.goalProgressText}>{goal.consistency}%</Text>
+              </View>
+            </View>
+          ))
+        )}
+      </View>
+      
+      {goals.length > 0 && (
+        <View style={styles.focusCard}>
+          <LinearGradient
+            colors={['rgba(231, 180, 58, 0.1)', 'rgba(231, 180, 58, 0.05)']}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <Text style={styles.focusLabel}>This Week's Focus</Text>
+          <Text style={styles.focusText}>{goals[0]?.milestones?.[0]?.title || 'Keep pushing forward!'}</Text>
+        </View>
+      )}
+    </Animated.View>
+  );
+
+  const renderActivity = () => (
+    <Animated.View 
+      entering={FadeInDown.delay(400).springify()}
+      style={styles.activitySection}
+    >
+      <View style={styles.cardHeader}>
+        <Calendar size={20} color={LuxuryTheme.colors.primary.gold} />
+        <Text style={styles.cardTitle}>My Activity</Text>
+      </View>
+      
+      {pinnedPosts.length > 0 && (
+        <View style={styles.pinnedSection}>
+          <Text style={styles.pinnedLabel}>📌 Pinned</Text>
+          {pinnedPosts.map((post, index) => (
+            <View key={post.id} style={styles.activityPost}>
+              <View style={styles.postHeader}>
+                <Text style={styles.postAction}>{post.action}</Text>
+                <Text style={styles.postTime}>{post.time}</Text>
+              </View>
+              {post.milestone && (
+                <View style={styles.postMilestone}>
+                  <Trophy size={14} color={LuxuryTheme.colors.primary.gold} />
+                  <Text style={styles.postMilestoneText}>{post.milestone}</Text>
+                </View>
+              )}
+              <View style={styles.postStats}>
+                <View style={styles.postStat}>
+                  <Heart size={14} color={LuxuryTheme.colors.text.tertiary} />
+                  <Text style={styles.postStatText}>{post.kudos || 0}</Text>
+                </View>
+                <View style={styles.postStat}>
+                  <MessageCircle size={14} color={LuxuryTheme.colors.text.tertiary} />
+                  <Text style={styles.postStatText}>{post.comments?.length || 0}</Text>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+      
+      {recentPosts.length > 0 && (
+        <View style={styles.recentSection}>
+          <Text style={styles.recentLabel}>Recent</Text>
+          {recentPosts.map((post) => (
+            <View key={post.id} style={styles.recentItem}>
+              <View style={styles.recentDot} />
+              <Text style={styles.recentText}>{post.action}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </Animated.View>
+  );
+
   const renderSettings = () => (
     <Animated.View 
       entering={FadeInDown.delay(400).springify()}
@@ -235,6 +341,21 @@ export const ProfileScreenUnified = () => {
         
         <HapticButton
           hapticType="light"
+          style={styles.settingItem}
+          onPress={() => {
+            localStorage.removeItem('onboarding_completed');
+            window.location.reload();
+          }}
+        >
+          <View style={styles.settingLeft}>
+            <RotateCcw size={20} color={LuxuryTheme.colors.text.secondary} />
+            <Text style={styles.settingText}>Reset Onboarding</Text>
+          </View>
+          <ChevronRight size={20} color={LuxuryTheme.colors.text.tertiary} />
+        </HapticButton>
+        
+        <HapticButton
+          hapticType="light"
           style={[styles.settingItem, styles.logoutItem]}
         >
           <View style={styles.settingLeft}>
@@ -259,7 +380,9 @@ export const ProfileScreenUnified = () => {
       >
         {renderHeader()}
         {renderAchievements()}
+        {renderJourney()}
         {renderStats()}
+        {renderActivity()}
         {renderSettings()}
       </ScrollView>
     </View>
@@ -488,5 +611,176 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: '#EF4444',
+  },
+  journeyCard: {
+    backgroundColor: LuxuryTheme.colors.background.card,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: LuxuryTheme.colors.background.cardBorder,
+  },
+  journeyContent: {
+    gap: 12,
+  },
+  journeyGoal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  goalLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  goalIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  goalInfo: {
+    flex: 1,
+  },
+  goalName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: LuxuryTheme.colors.text.primary,
+    marginBottom: 2,
+  },
+  goalCategory: {
+    fontSize: 12,
+    color: LuxuryTheme.colors.text.tertiary,
+  },
+  goalProgress: {
+    backgroundColor: 'rgba(231, 180, 58, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  goalProgressText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: LuxuryTheme.colors.primary.gold,
+  },
+  focusCard: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: 'rgba(231, 180, 58, 0.05)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  focusLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: LuxuryTheme.colors.text.tertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  focusText: {
+    fontSize: 14,
+    color: LuxuryTheme.colors.primary.gold,
+    fontWeight: '500',
+  },
+  activitySection: {
+    backgroundColor: LuxuryTheme.colors.background.card,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: LuxuryTheme.colors.background.cardBorder,
+  },
+  pinnedSection: {
+    marginTop: 16,
+  },
+  pinnedLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: LuxuryTheme.colors.text.secondary,
+    marginBottom: 12,
+  },
+  activityPost: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  postAction: {
+    fontSize: 14,
+    color: LuxuryTheme.colors.text.primary,
+    flex: 1,
+  },
+  postTime: {
+    fontSize: 12,
+    color: LuxuryTheme.colors.text.tertiary,
+  },
+  postMilestone: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(231, 180, 58, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  postMilestoneText: {
+    fontSize: 12,
+    color: LuxuryTheme.colors.primary.gold,
+    fontWeight: '500',
+  },
+  postStats: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  postStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  postStatText: {
+    fontSize: 12,
+    color: LuxuryTheme.colors.text.tertiary,
+  },
+  recentSection: {
+    marginTop: 16,
+  },
+  recentLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: LuxuryTheme.colors.text.secondary,
+    marginBottom: 12,
+  },
+  recentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+  },
+  recentDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: LuxuryTheme.colors.text.tertiary,
+  },
+  recentText: {
+    fontSize: 13,
+    color: LuxuryTheme.colors.text.tertiary,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: LuxuryTheme.colors.text.tertiary,
+    textAlign: 'center',
+    paddingVertical: 16,
   },
 });
