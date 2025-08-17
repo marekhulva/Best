@@ -7,10 +7,7 @@ export type DailySlice = {
   addAction: (a:ActionItem)=>void;
 };
 export const createDailySlice: StateCreator<DailySlice> = (set) => ({
-  actions: [
-    { id:'1', title:'Morning workout', goalTitle:'Lose 10 lbs', type:'commitment', time:'7:00', streak:7 },
-    { id:'2', title:'Meditation 10m', type:'performance', streak:3 },
-  ],
+  actions: [],
   toggleAction: (id) => set((s)=>({ actions: s.actions.map(a => a.id===id ? ({...a, done: !a.done, streak: a.done ? a.streak : a.streak+1}) : a) })),
-  addAction: (a) => set((s)=>({ actions: [a, ...s.actions] })),
+  addAction: (a) => set((s)=>({ actions: [...s.actions, a] })),
 });

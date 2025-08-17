@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -9,18 +10,19 @@ import { DailyScreenVibrant } from './src/features/daily/DailyScreenVibrant';
 import { SocialScreen } from './src/features/social/SocialScreen';
 import { ProgressEnhanced } from './src/features/progress/ProgressEnhanced';
 import { ProfileEnhanced } from './src/features/profile/ProfileEnhanced';
+import { OnboardingFlow } from './src/features/onboarding';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
 const navTheme = {
   ...DefaultTheme,
   colors: { ...DefaultTheme.colors, background: 'transparent', card: 'transparent', text: '#FFFFFF', border: 'transparent' },
 };
 
-export const RootNav = () => {
+const MainTabs = () => {
   return (
-    <NavigationContainer theme={navTheme}>
-      <Tab.Navigator
+    <Tab.Navigator
         screenOptions={{
           headerShown: false,
           tabBarBackground: () => (
@@ -99,6 +101,29 @@ export const RootNav = () => {
             )
           }} />
       </Tab.Navigator>
+  );
+};
+
+export const RootNav = () => {
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(
+    () => localStorage.getItem('onboarding_completed') === 'true'
+  );
+
+  return (
+    <NavigationContainer theme={navTheme}>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!hasCompletedOnboarding ? (
+          <Stack.Screen name="Onboarding">
+            {() => (
+              <OnboardingFlow 
+                onComplete={() => setHasCompletedOnboarding(true)} 
+              />
+            )}
+          </Stack.Screen>
+        ) : (
+          <Stack.Screen name="Main" component={MainTabs} />
+        )}
+      </Stack.Navigator>
     </NavigationContainer>
   );
 };

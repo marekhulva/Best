@@ -18,6 +18,7 @@ import { LuxuryGradientBackground } from '../../ui/LuxuryGradientBackground';
 import { GoldParticles } from '../../ui/GoldParticles';
 import { useStore } from '../../state/rootStore';
 import { PostCardEnhanced } from '../social/components/PostCardEnhanced';
+import { ResetOnboardingButton } from '../onboarding/ResetButton';
 
 const { width } = Dimensions.get('window');
 
@@ -329,6 +330,7 @@ export const ProfileEnhanced = () => {
           </View>
         </ScrollView>
       </LuxuryGradientBackground>
+      <ResetOnboardingButton />
     </View>
   );
 };
