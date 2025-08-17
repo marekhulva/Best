@@ -109,6 +109,20 @@ export const RootNav = () => {
     () => localStorage.getItem('onboarding_completed') === 'true'
   );
 
+  // Quick reset with 'R' key for development
+  React.useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'r' || e.key === 'R') {
+        localStorage.removeItem('onboarding_completed');
+        localStorage.removeItem('onboarding_milestones');
+        setHasCompletedOnboarding(false);
+      }
+    };
+    
+    window.addEventListener('keypress', handleKeyPress);
+    return () => window.removeEventListener('keypress', handleKeyPress);
+  }, []);
+
   return (
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>

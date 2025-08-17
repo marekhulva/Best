@@ -9,6 +9,7 @@ import {
   Switch,
   TouchableOpacity,
   FlatList,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -18,6 +19,7 @@ import {
   Smartphone, ShoppingBag, Users, Home, Briefcase,
   Plus, X, Check
 } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -63,26 +65,33 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
   const [activeTab, setActiveTab] = useState<'one-time' | 'commitment'>('commitment');
   const [actions, setActions] = useState<Action[]>([]);
   const [showCustomForm, setShowCustomForm] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [customAction, setCustomAction] = useState<Partial<Action>>({
     type: activeTab,
     reminder: true,
+    frequency: 'daily',
+    timeOfDay: '09:00',
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
   });
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
   const handleAddAction = (template: any) => {
-    const newAction: Action = {
-      id: `action-${Date.now()}`,
+    // Instead of directly adding, open edit form for the template
+    setEditingTemplate(template);
+    setCustomAction({
       type: activeTab,
       title: template.title,
       category: template.category,
-      icon: 'default',
-      frequency: template.frequency,
+      frequency: template.frequency || 'daily',
       daysPerWeek: template.daysPerWeek,
-      duration: template.duration,
-      timeOfDay: template.timeOfDay,
+      duration: template.duration || 30,
+      timeOfDay: template.timeOfDay || '09:00',
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       reminder: true,
-    };
-    
-    setActions([...actions, newAction]);
+    });
+    setShowCustomForm(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -99,18 +108,29 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
       type: activeTab,
       title: customAction.title,
       description: customAction.description,
-      category: goal.category,
+      category: customAction.category || goal.category,
       icon: 'default',
       frequency: customAction.frequency,
       daysPerWeek: customAction.daysPerWeek,
+      specificDays: customAction.specificDays,
       duration: customAction.duration,
       timeOfDay: customAction.timeOfDay,
+      dueDate: customAction.dueDate,
       reminder: customAction.reminder || false,
+      reminderTime: customAction.timeOfDay,
     };
     
     setActions([...actions, newAction]);
     setShowCustomForm(false);
-    setCustomAction({ type: activeTab, reminder: true });
+    setEditingTemplate(null);
+    setCustomAction({ 
+      type: activeTab, 
+      reminder: true,
+      frequency: 'daily',
+      timeOfDay: '09:00',
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+    setSelectedDays([]);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
@@ -118,7 +138,17 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
     <View style={styles.tabBar}>
       <HapticButton
         hapticType="light"
-        onPress={() => setActiveTab('commitment')}
+        onPress={() => {
+          setActiveTab('commitment');
+          setCustomAction({
+            type: 'commitment',
+            reminder: true,
+            frequency: 'daily',
+            timeOfDay: '09:00',
+            dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          });
+          setSelectedDays([]);
+        }}
         style={[styles.tab, activeTab === 'commitment' && styles.tabActive]}
       >
         <RefreshCw 
@@ -132,7 +162,17 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
       
       <HapticButton
         hapticType="light"
-        onPress={() => setActiveTab('one-time')}
+        onPress={() => {
+          setActiveTab('one-time');
+          setCustomAction({
+            type: 'one-time',
+            reminder: true,
+            frequency: undefined,
+            timeOfDay: '09:00',
+            dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          });
+          setSelectedDays([]);
+        }}
         style={[styles.tab, activeTab === 'one-time' && styles.tabActive]}
       >
         <Zap 
@@ -202,14 +242,26 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
     >
       <View style={styles.selectedActionContent}>
         <Text style={styles.selectedActionTitle}>{action.title}</Text>
-        {action.frequency && (
-          <Text style={styles.selectedActionMeta}>
-            {action.frequency === 'daily' ? 'Daily' :
-             action.daysPerWeek ? `${action.daysPerWeek}x/week` :
-             action.frequency}
-            {action.duration && ` • ${action.duration} min`}
-          </Text>
-        )}
+        <View style={styles.selectedActionMetaRow}>
+          {action.type === 'commitment' && action.frequency && (
+            <Text style={styles.selectedActionMeta}>
+              {action.frequency === 'daily' ? 'Daily' :
+               action.specificDays ? `${action.specificDays.length}x/week` :
+               action.frequency}
+              {action.timeOfDay && ` at ${action.timeOfDay}`}
+              {action.duration && ` • ${action.duration} min`}
+            </Text>
+          )}
+          {action.type === 'one-time' && action.dueDate && (
+            <Text style={styles.selectedActionMeta}>
+              {action.dueDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+              })}
+              {action.timeOfDay && ` at ${action.timeOfDay}`}
+            </Text>
+          )}
+        </View>
       </View>
       
       <HapticButton
@@ -228,10 +280,15 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
       style={styles.customForm}
     >
       <View style={styles.customFormHeader}>
-        <Text style={styles.customFormTitle}>Create Custom Action</Text>
+        <Text style={styles.customFormTitle}>
+          {editingTemplate ? 'Customize Action' : 'Create Custom Action'}
+        </Text>
         <HapticButton
           hapticType="light"
-          onPress={() => setShowCustomForm(false)}
+          onPress={() => {
+            setShowCustomForm(false);
+            setEditingTemplate(null);
+          }}
           style={styles.closeButton}
         >
           <X color={LuxuryTheme.colors.text.tertiary} size={20} />
@@ -239,13 +296,13 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
       </View>
       
       <TextInput
-        style={styles.customInput}
+        style={[styles.customInput, editingTemplate && styles.customInputPreFilled]}
         placeholder="Action title..."
         placeholderTextColor={LuxuryTheme.colors.text.muted}
         value={customAction.title}
         onChangeText={(text) => setCustomAction({ ...customAction, title: text })}
+        editable={!editingTemplate}
       />
-      
       {activeTab === 'commitment' && (
         <>
           <View style={styles.frequencyRow}>
@@ -272,29 +329,115 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
           </View>
           
           {customAction.frequency === 'weekly' && (
-            <View style={styles.daysRow}>
-              <Text style={styles.inputLabel}>Days per week</Text>
-              <View style={styles.daysOptions}>
-                {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                  <TouchableOpacity
-                    key={day}
-                    onPress={() => setCustomAction({ ...customAction, daysPerWeek: day })}
-                    style={[
-                      styles.dayOption,
-                      customAction.daysPerWeek === day && styles.dayOptionActive
-                    ]}
-                  >
-                    <Text style={[
-                      styles.dayOptionText,
-                      customAction.daysPerWeek === day && styles.dayOptionTextActive
-                    ]}>
-                      {day}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+            <>
+              <View style={styles.daysRow}>
+                <Text style={styles.inputLabel}>Which days?</Text>
+                <View style={styles.weekDaysOptions}>
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                    <TouchableOpacity
+                      key={day}
+                      onPress={() => {
+                        const newDays = selectedDays.includes(index)
+                          ? selectedDays.filter(d => d !== index)
+                          : [...selectedDays, index];
+                        setSelectedDays(newDays);
+                        setCustomAction({ 
+                          ...customAction, 
+                          specificDays: newDays,
+                          daysPerWeek: newDays.length 
+                        });
+                      }}
+                      style={[
+                        styles.weekDayOption,
+                        selectedDays.includes(index) && styles.weekDayOptionActive
+                      ]}
+                    >
+                      <Text style={[
+                        styles.weekDayOptionText,
+                        selectedDays.includes(index) && styles.weekDayOptionTextActive
+                      ]}>
+                        {day}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
+            </>
           )}
+          
+          {/* Time picker for commitments */}
+          <View style={styles.timeRow}>
+            <Text style={styles.inputLabel}>Time of day</Text>
+            <TouchableOpacity
+              onPress={() => setShowTimePicker(true)}
+              style={styles.timeButton}
+            >
+              <Clock color={LuxuryTheme.colors.text.secondary} size={18} />
+              <Text style={styles.timeButtonText}>
+                {customAction.timeOfDay || '09:00'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Duration input */}
+          <View style={styles.durationRow}>
+            <Text style={styles.inputLabel}>Duration (minutes)</Text>
+            <View style={styles.durationOptions}>
+              {[5, 10, 15, 30, 45, 60].map((minutes) => (
+                <TouchableOpacity
+                  key={minutes}
+                  onPress={() => setCustomAction({ ...customAction, duration: minutes })}
+                  style={[
+                    styles.durationOption,
+                    customAction.duration === minutes && styles.durationOptionActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.durationOptionText,
+                    customAction.duration === minutes && styles.durationOptionTextActive
+                  ]}>
+                    {minutes}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </>
+      )}
+      
+      {activeTab === 'one-time' && (
+        <>
+          {/* Date picker for one-time actions */}
+          <View style={styles.dateRow}>
+            <Text style={styles.inputLabel}>Due date</Text>
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
+              style={styles.dateButton}
+            >
+              <Calendar color={LuxuryTheme.colors.text.secondary} size={18} />
+              <Text style={styles.dateButtonText}>
+                {customAction.dueDate?.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Time picker for one-time actions */}
+          <View style={styles.timeRow}>
+            <Text style={styles.inputLabel}>Time</Text>
+            <TouchableOpacity
+              onPress={() => setShowTimePicker(true)}
+              style={styles.timeButton}
+            >
+              <Clock color={LuxuryTheme.colors.text.secondary} size={18} />
+              <Text style={styles.timeButtonText}>
+                {customAction.timeOfDay || '09:00'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </>
       )}
       
@@ -322,8 +465,49 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
           colors={[LuxuryTheme.colors.primary.gold, LuxuryTheme.colors.primary.champagne]}
           style={StyleSheet.absoluteFillObject}
         />
-        <Text style={styles.createButtonText}>Add Action</Text>
+        <Text style={styles.createButtonText}>
+          {editingTemplate ? 'Add to Schedule' : 'Add Action'}
+        </Text>
       </HapticButton>
+      
+      {/* Time Picker Modal */}
+      {showTimePicker && (
+        <DateTimePicker
+          value={(() => {
+            const [hours, minutes] = (customAction.timeOfDay || '09:00').split(':');
+            const date = new Date();
+            date.setHours(parseInt(hours), parseInt(minutes));
+            return date;
+          })()}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={(event, selectedTime) => {
+            setShowTimePicker(false);
+            if (selectedTime) {
+              const hours = selectedTime.getHours().toString().padStart(2, '0');
+              const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+              setCustomAction({ ...customAction, timeOfDay: `${hours}:${minutes}` });
+            }
+          }}
+        />
+      )}
+      
+      {/* Date Picker Modal */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={customAction.dueDate || new Date()}
+          mode="date"
+          display="default"
+          minimumDate={new Date()}
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) {
+              setCustomAction({ ...customAction, dueDate: selectedDate });
+            }
+          }}
+        />
+      )}
     </Animated.View>
   );
 
@@ -562,6 +746,11 @@ const styles = StyleSheet.create({
     borderColor: LuxuryTheme.colors.interactive.border,
     marginBottom: 20,
   },
+  customInputPreFilled: {
+    backgroundColor: 'rgba(231, 180, 58, 0.05)',
+    borderColor: 'rgba(231, 180, 58, 0.2)',
+    color: LuxuryTheme.colors.primary.gold,
+  },
   inputLabel: {
     fontSize: 12,
     color: LuxuryTheme.colors.text.tertiary,
@@ -600,30 +789,99 @@ const styles = StyleSheet.create({
   daysRow: {
     marginBottom: 20,
   },
-  daysOptions: {
+  weekDaysOptions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
+    marginTop: 8,
   },
-  dayOption: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  weekDayOption: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
     borderColor: LuxuryTheme.colors.interactive.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dayOptionActive: {
+  weekDayOptionActive: {
+    backgroundColor: 'rgba(231, 180, 58, 0.15)',
+    borderColor: LuxuryTheme.colors.primary.gold,
+  },
+  weekDayOptionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: LuxuryTheme.colors.text.secondary,
+  },
+  weekDayOptionTextActive: {
+    color: LuxuryTheme.colors.primary.gold,
+  },
+  timeRow: {
+    marginBottom: 20,
+  },
+  timeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: LuxuryTheme.colors.interactive.border,
+    gap: 12,
+    marginTop: 8,
+  },
+  timeButtonText: {
+    fontSize: 16,
+    color: LuxuryTheme.colors.text.primary,
+    fontWeight: '500',
+  },
+  dateRow: {
+    marginBottom: 20,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: LuxuryTheme.colors.interactive.border,
+    gap: 12,
+    marginTop: 8,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: LuxuryTheme.colors.text.primary,
+    fontWeight: '500',
+  },
+  durationRow: {
+    marginBottom: 20,
+  },
+  durationOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  durationOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: LuxuryTheme.colors.interactive.border,
+  },
+  durationOptionActive: {
     backgroundColor: 'rgba(231, 180, 58, 0.1)',
     borderColor: LuxuryTheme.colors.primary.gold,
   },
-  dayOptionText: {
+  durationOptionText: {
     fontSize: 14,
     fontWeight: '600',
     color: LuxuryTheme.colors.text.secondary,
   },
-  dayOptionTextActive: {
+  durationOptionTextActive: {
     color: LuxuryTheme.colors.primary.gold,
   },
   reminderRow: {
@@ -677,6 +935,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: LuxuryTheme.colors.text.tertiary,
     marginTop: 2,
+  },
+  selectedActionMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
   },
   removeButton: {
     padding: 8,
