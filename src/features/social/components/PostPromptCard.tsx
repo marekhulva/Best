@@ -61,20 +61,20 @@ const PROMPTS = [
 
 // Color system for Coca
 const CocaColors = {
-  gold: '#FFB74D',
-  amber: '#FFA726',
+  gold: LuxuryTheme.colors.primary.gold,
+  amber: LuxuryTheme.colors.primary.champagne,
   teal: '#4DB6AC',
   green: '#66BB6A',
   purple: '#9C27B0',
   blue: '#42A5F5',
   red: '#EF5350',
-  orange: '#FF7043',
-  dark: '#121212',
-  charcoal: '#1C1C1C',
-  glass: 'rgba(18, 18, 18, 0.85)',
-  silver: '#C0C0C0',
-  neonBlue: '#00D4FF',
-  softGold: '#FFD700',
+  orange: LuxuryTheme.colors.primary.champagne,
+  dark: '#0A0A0A',
+  charcoal: '#1A1A1A',
+  glass: 'rgba(10, 10, 10, 0.95)',
+  silver: LuxuryTheme.colors.primary.silver,
+  neonBlue: LuxuryTheme.colors.primary.gold,
+  softGold: LuxuryTheme.colors.primary.gold,
 };
 
 const getAccentColor = (accent: string) => {
@@ -844,22 +844,22 @@ export const PostPromptCard: React.FC<PostPromptCardProps> = ({ onOpenComposer }
 // Styles
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginBottom: 20,
-    borderRadius: 22,
+    borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: CocaColors.neonBlue,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 5,
+    shadowColor: LuxuryTheme.colors.primary.gold,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   card: {
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: 'rgba(0,212,255,0.2)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(231, 180, 58, 0.1)',
     overflow: 'hidden',
-    backgroundColor: CocaColors.glass,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
   cardInner: {
     padding: 16,

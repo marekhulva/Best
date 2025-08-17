@@ -28,7 +28,7 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
 }) => {
   const slideAnim = useSharedValue(activeTab === 'circle' ? 0 : 1);
   const glowAnim = useSharedValue(0);
-  const isLuxury = isFeatureEnabled('ui.social.luxuryTheme');
+  const isLuxury = true; // Always use luxury theme to match onboarding
   const styles = React.useMemo(() => createStyles(isLuxury), [isLuxury]);
 
   React.useEffect(() => {
@@ -169,14 +169,16 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
 
 const createStyles = (isLuxury: boolean) => StyleSheet.create({
   container: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginVertical: 16,
-    height: 52,
-    borderRadius: 26,
+    height: 56,
+    borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.gold.primary : '#E7B43A',
-    shadowOffset: { width: 0, height: isLuxury ? 0 : 6 },
-    shadowOpacity: isLuxury ? 0.2 : 0.15,
+    borderWidth: 1,
+    borderColor: 'rgba(231, 180, 58, 0.1)',
+    shadowColor: LuxuryTheme.colors.primary.gold,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
     shadowRadius: isLuxury ? 8 : 12,
     elevation: isLuxury ? 3 : 5,
   },
