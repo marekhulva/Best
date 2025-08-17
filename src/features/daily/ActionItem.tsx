@@ -1,9 +1,7 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Flame, Trophy, Zap } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Flame, Trophy, Zap, CheckCircle2, Circle, Target, Clock } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { GlassSurface } from '../../ui/GlassSurface';
-import { AnimatedToggle } from '../../ui/AnimatedToggle';
 import { useStore } from '../../state/rootStore';
 import Animated, {
   useSharedValue,
@@ -13,8 +11,11 @@ import Animated, {
   withTiming,
   interpolate,
   Easing,
+  FadeIn,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { LuxuryTheme } from '../../design/luxuryTheme';
 
 interface ActionItemProps {
   id: string;
@@ -39,28 +40,9 @@ export const ActionItem: React.FC<ActionItemProps> = ({
   const openShare = useStore(s => s.openShare);
   const scaleAnimation = useSharedValue(1);
   const streakGlow = useSharedValue(0);
+  const checkAnimation = useSharedValue(done ? 1 : 0);
   
-  const getGlowColor = () => {
-    const colors = {
-      goal: '#00D4FF',
-      performance: '#00FF88',
-      commitment: '#B366FF',
-      oneTime: '#FF006E',
-    };
-    return colors[type];
-  };
-
-  const getNeonGlow = () => {
-    const glows = {
-      goal: 'blue',
-      performance: 'green',
-      commitment: 'purple',
-      oneTime: 'pink',
-    };
-    return glows[type] as 'blue' | 'green' | 'purple' | 'pink';
-  };
-
-  // Streak glow animation
+  // Streak glow animation for high streaks
   useEffect(() => {
     if (streak > 7) {
       streakGlow.value = withRepeat(
@@ -73,130 +55,165 @@ export const ActionItem: React.FC<ActionItemProps> = ({
 
   // Complete animation
   useEffect(() => {
-    if (done) {
-      scaleAnimation.value = withSpring(0.98, {
-        damping: 15,
-        stiffness: 150,
-      });
-    } else {
-      scaleAnimation.value = withSpring(1, {
-        damping: 15,
-        stiffness: 150,
-      });
-    }
+    checkAnimation.value = withSpring(done ? 1 : 0, {
+      damping: 15,
+      stiffness: 150,
+    });
   }, [done]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scaleAnimation.value, [0.98, 1], [0.7, 1]),
-    transform: [{ scale: scaleAnimation.value }],
+    opacity: interpolate(checkAnimation.value, [0, 1], [1, 0.7]),
+    transform: [{ scale: interpolate(checkAnimation.value, [0, 1], [1, 0.98]) }],
+  }));
+
+  const checkboxStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(checkAnimation.value, [0, 1], [1, 1.1]) }],
   }));
 
   const streakBadgeStyle = useAnimatedStyle(() => ({
-    shadowColor: '#FFD600',
-    shadowOpacity: interpolate(streakGlow.value, [0, 1], [0.3, 0.8]),
-    shadowRadius: interpolate(streakGlow.value, [0, 1], [5, 15]),
-    elevation: interpolate(streakGlow.value, [0, 1], [2, 5]),
+    transform: [{ scale: interpolate(streakGlow.value, [0, 1], [1, 1.05]) }],
   }));
 
   const getStreakIcon = () => {
-    if (streak >= 30) return <Trophy size={14} color="#FFD600" />;
-    if (streak >= 7) return <Zap size={14} color="#FFD600" />;
-    return <Flame size={14} color="#FFD600" />;
+    if (streak >= 30) return <Trophy size={12} color={LuxuryTheme.colors.primary.gold} />;
+    if (streak >= 7) return <Zap size={12} color={LuxuryTheme.colors.primary.gold} />;
+    return <Flame size={12} color={LuxuryTheme.colors.primary.gold} />;
   };
 
-  const getStreakBadgeColor = () => {
-    if (streak >= 30) return ['rgba(255,214,0,0.3)', 'rgba(255,214,0,0.1)'];
-    if (streak >= 7) return ['rgba(255,214,0,0.25)', 'rgba(255,214,0,0.05)'];
-    return ['rgba(255,214,0,0.15)', 'rgba(255,214,0,0.05)'];
+  const handleToggle = () => {
+    toggle(id);
+    Haptics.impactAsync(done ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Offer share after completion
+    if (!done && streak > 0) {
+      setTimeout(() => {
+        openShare({
+          type:'checkin',
+          visibility:'circle',
+          actionTitle: title,
+          goal: goalTitle,
+          streak: streak + 1,
+          goalColor: goalColor || LuxuryTheme.colors.primary.gold,
+        });
+      }, 500);
+    }
   };
 
   return (
-    <Animated.View style={animatedStyle}>
-      <GlassSurface style={styles.card} neonGlow={done ? 'none' : getNeonGlow()}>
-        <View style={styles.row}>
-          <AnimatedToggle
-            checked={done}
-            onToggle={() => {
-              toggle(id);
-              Haptics.impactAsync(done ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium);
-              // Offer share after completion
-              if (!done) {
-                openShare({
-                  type:'checkin',
-                  visibility:'circle',
-                  actionTitle: title,
-                  goal: goalTitle,
-                  streak: streak + 1,
-                  goalColor: goalColor || getGlowColor(),
-                });
-              }
-            }}
-            glowColor={getGlowColor()}
-            size={40}
+    <Animated.View entering={FadeIn} style={animatedStyle}>
+      <TouchableOpacity onPress={handleToggle} activeOpacity={0.7}>
+        <View style={[styles.card, done && styles.cardDone]}>
+          <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFillObject} />
+          
+          {/* Subtle gradient overlay */}
+          <LinearGradient
+            colors={done 
+              ? ['rgba(34, 197, 94, 0.05)', 'rgba(34, 197, 94, 0.02)']
+              : ['rgba(255, 255, 255, 0.03)', 'rgba(255, 255, 255, 0.01)']}
+            style={StyleSheet.absoluteFillObject}
           />
           
-          <View style={styles.content}>
-            <Text style={[styles.title, done && styles.titleDone]}>{title}</Text>
-            <View style={styles.metaRow}>
-              {goalTitle && (
-                <View style={styles.goalBadge}>
-                  <Text style={styles.meta}>{goalTitle}</Text>
-                </View>
-              )}
-              {streak > 0 && (
-                <Animated.View style={[styles.streakBadge, streak > 7 && streakBadgeStyle]}>
+          <View style={styles.row}>
+            {/* Premium Checkbox */}
+            <Animated.View style={[styles.checkbox, checkboxStyle]}>
+              {done ? (
+                <View style={styles.checkboxChecked}>
                   <LinearGradient
-                    colors={getStreakBadgeColor()}
+                    colors={[LuxuryTheme.colors.primary.gold, LuxuryTheme.colors.primary.champagne]}
                     style={StyleSheet.absoluteFillObject}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
                   />
-                  {getStreakIcon()}
-                  <Text style={styles.streakText}>{streak}</Text>
-                  {streak >= 30 && <Text style={styles.streakLabel}>🔥</Text>}
-                </Animated.View>
+                  <CheckCircle2 color="#000" size={24} strokeWidth={3} />
+                </View>
+              ) : (
+                <Circle color={LuxuryTheme.colors.text.tertiary} size={24} strokeWidth={1.5} />
               )}
-            </View>
-          </View>
-
-          {done && (
-            <Animated.View 
-              style={[styles.doneIndicator]}
-            >
-              <LinearGradient
-                colors={['rgba(0,255,136,0.3)', 'rgba(0,255,136,0.1)']}
-                style={StyleSheet.absoluteFillObject}
-              />
-              <Text style={styles.doneText}>✓</Text>
             </Animated.View>
-          )}
+            
+            {/* Content */}
+            <View style={styles.content}>
+              <Text style={[styles.title, done && styles.titleDone]}>{title}</Text>
+              
+              <View style={styles.metaRow}>
+                {goalTitle && (
+                  <View style={styles.goalBadge}>
+                    <Target size={10} color={LuxuryTheme.colors.text.tertiary} />
+                    <Text style={styles.goalText}>{goalTitle}</Text>
+                  </View>
+                )}
+                
+                {streak > 0 && (
+                  <Animated.View style={[styles.streakBadge, streak > 7 && streakBadgeStyle]}>
+                    <LinearGradient
+                      colors={streak >= 30 
+                        ? ['rgba(231, 180, 58, 0.2)', 'rgba(231, 180, 58, 0.1)']
+                        : streak >= 7
+                        ? ['rgba(231, 180, 58, 0.15)', 'rgba(231, 180, 58, 0.08)']
+                        : ['rgba(231, 180, 58, 0.1)', 'rgba(231, 180, 58, 0.05)']
+                      }
+                      style={StyleSheet.absoluteFillObject}
+                    />
+                    {getStreakIcon()}
+                    <Text style={styles.streakText}>{streak}</Text>
+                    {streak >= 7 && <Text style={styles.streakLabel}>day{streak !== 1 ? 's' : ''}</Text>}
+                  </Animated.View>
+                )}
+              </View>
+            </View>
+
+            {/* Completion Indicator */}
+            {done && (
+              <View style={styles.doneIndicator}>
+                <Text style={styles.doneText}>✓</Text>
+              </View>
+            )}
+          </View>
         </View>
-      </GlassSurface>
+      </TouchableOpacity>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   card: { 
-    marginBottom: 12, 
-    padding: 16,
+    marginBottom: 8,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    overflow: 'hidden',
+  },
+  cardDone: {
+    backgroundColor: 'rgba(34, 197, 94, 0.03)',
+    borderColor: 'rgba(34, 197, 94, 0.15)',
   },
   row: { 
     flexDirection: 'row', 
-    alignItems: 'center' 
+    alignItems: 'center',
+    padding: 16,
+  },
+  checkbox: {
+    marginRight: 14,
+  },
+  checkboxChecked: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
-    marginLeft: 16,
   },
   title: { 
-    color: '#FFF', 
-    fontWeight: '700',
-    fontSize: 16,
+    color: LuxuryTheme.colors.text.primary,
+    fontSize: 15,
+    fontWeight: '500',
     marginBottom: 6,
+    letterSpacing: 0.2,
   },
   titleDone: {
-    opacity: 0.5,
+    color: LuxuryTheme.colors.text.tertiary,
     textDecorationLine: 'line-through',
   },
   metaRow: {
@@ -205,47 +222,51 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   goalBadge: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
-  meta: { 
-    color: 'rgba(255,255,255,0.6)', 
-    fontSize: 12,
+  goalText: {
+    color: LuxuryTheme.colors.text.tertiary,
+    fontSize: 11,
     fontWeight: '600',
+    letterSpacing: 0.3,
   },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 14,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
     overflow: 'hidden',
   },
   streakText: {
-    color: '#FFD600',
-    fontSize: 13,
-    fontWeight: '800',
-    marginLeft: 5,
+    color: LuxuryTheme.colors.primary.gold,
+    fontSize: 12,
+    fontWeight: '700',
   },
   streakLabel: {
-    marginLeft: 3,
-    fontSize: 11,
+    color: LuxuryTheme.colors.primary.gold,
+    fontSize: 10,
+    fontWeight: '500',
+    opacity: 0.8,
   },
   doneIndicator: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
   },
   doneText: {
-    color: '#00FF88',
-    fontSize: 16,
-    fontWeight: '900',
+    color: '#22C55E',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
