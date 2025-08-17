@@ -19,6 +19,7 @@ import { GoldParticles } from '../../ui/GoldParticles';
 import { useStore } from '../../state/rootStore';
 import { PostCardEnhanced } from '../social/components/PostCardEnhanced';
 import { ResetOnboardingButton } from '../onboarding/ResetButton';
+import { LuxuryTheme } from '../../design/luxuryTheme';
 
 const { width } = Dimensions.get('window');
 
@@ -60,9 +61,9 @@ export const ProfileEnhanced = () => {
 
   // Sample data for demonstration
   const achievements = [
-    { icon: Flame, label: '30 Day Streak', color: '#FFD700' },
-    { icon: Trophy, label: '10 Goals Completed', color: '#C0C0C0' },
-    { icon: Star, label: 'Top Performer', color: '#F7E7CE' },
+    { icon: Flame, label: '30 Day Streak', color: LuxuryTheme.colors.primary.gold },
+    { icon: Trophy, label: '10 Goals Completed', color: LuxuryTheme.colors.primary.silver },
+    { icon: Star, label: 'Top Performer', color: LuxuryTheme.colors.primary.champagne },
   ];
 
   const activeGoals = goals.slice(0, 3).map(goal => ({
@@ -88,7 +89,7 @@ export const ProfileEnhanced = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* HERO SECTION - Personal Brand */}
-          <Animated.View style={[styles.heroCard, profileGlowStyle, { shadowColor: '#FFD700' }]}>
+          <Animated.View style={[styles.heroCard, profileGlowStyle, { shadowColor: LuxuryTheme.colors.primary.gold }]}>
             <BlurView intensity={40} tint="dark" style={styles.heroCardInner}>
               <LinearGradient
                 colors={['rgba(255,215,0,0.1)', 'rgba(192,192,192,0.05)']}
@@ -98,7 +99,7 @@ export const ProfileEnhanced = () => {
               {/* Avatar with luxury ring */}
               <View style={styles.avatarSection}>
                 <LinearGradient
-                  colors={['#FFD700', '#C0C0C0', '#F7E7CE']}
+                  colors={[LuxuryTheme.colors.primary.gold, LuxuryTheme.colors.primary.silver, LuxuryTheme.colors.primary.champagne]}
                   style={styles.avatarRing}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}

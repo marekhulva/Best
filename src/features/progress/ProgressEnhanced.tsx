@@ -20,6 +20,7 @@ import { LuxuryGradientBackground } from '../../ui/LuxuryGradientBackground';
 import { GoldParticles } from '../../ui/GoldParticles';
 import { useStore } from '../../state/rootStore';
 import { CircleProgress } from './CircleProgress';
+import { LuxuryTheme } from '../../design/luxuryTheme';
 
 const { width } = Dimensions.get('window');
 
@@ -114,7 +115,7 @@ export const ProgressEnhanced = () => {
               onPress={() => setMainTab('personal')}
               style={[styles.mainTab, mainTab === 'personal' && styles.mainTabActive]}
             >
-              <BarChart3 size={16} color={mainTab === 'personal' ? '#FFD700' : '#C0C0C0'} />
+              <BarChart3 size={16} color={mainTab === 'personal' ? LuxuryTheme.colors.primary.gold : LuxuryTheme.colors.primary.silver} />
               <Text style={[styles.mainTabText, mainTab === 'personal' && styles.mainTabTextActive]}>
                 Personal
               </Text>
@@ -124,7 +125,7 @@ export const ProgressEnhanced = () => {
               onPress={() => setMainTab('circle')}
               style={[styles.mainTab, mainTab === 'circle' && styles.mainTabActive]}
             >
-              <Users size={16} color={mainTab === 'circle' ? '#FFD700' : '#C0C0C0'} />
+              <Users size={16} color={mainTab === 'circle' ? LuxuryTheme.colors.primary.gold : LuxuryTheme.colors.primary.silver} />
               <Text style={[styles.mainTabText, mainTab === 'circle' && styles.mainTabTextActive]}>
                 Circle
               </Text>
@@ -142,7 +143,7 @@ export const ProgressEnhanced = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* HERO DASHBOARD */}
-          <Animated.View style={[styles.heroCard, heroGlowStyle, { shadowColor: '#FFD700' }]}>
+          <Animated.View style={[styles.heroCard, heroGlowStyle, { shadowColor: LuxuryTheme.colors.primary.gold }]}>
             <BlurView intensity={30} tint="dark" style={styles.heroCardInner}>
               <LinearGradient
                 colors={['rgba(255,215,0,0.12)', 'rgba(192,192,192,0.05)']}
@@ -152,7 +153,7 @@ export const ProgressEnhanced = () => {
               {/* Consistency Score */}
               <Animated.View style={[styles.scoreContainer, pulseStyle]}>
                 <LinearGradient
-                  colors={['#FFD700', '#F7E7CE', '#FFD700']}
+                  colors={[LuxuryTheme.colors.primary.gold, LuxuryTheme.colors.primary.champagne, LuxuryTheme.colors.primary.gold]}
                   style={styles.scoreRing}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
