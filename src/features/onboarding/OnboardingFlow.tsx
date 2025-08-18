@@ -107,6 +107,11 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
         why: state.goal.why,
         consistency: 0,
         status: 'On Track',
+        color: state.goal.category === 'fitness' ? '#22C55E' : 
+               state.goal.category === 'mindfulness' ? '#60A5FA' : 
+               state.goal.category === 'productivity' ? '#A78BFA' : '#FFD700',
+        category: state.goal.category,
+        milestones: state.milestones,
       });
 
       // Convert and add actions to daily actions

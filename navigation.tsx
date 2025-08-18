@@ -8,7 +8,7 @@ import { BlurView } from 'expo-blur';
 import { CheckCircle2, House, BarChart3, User2 } from 'lucide-react-native';
 import { DailyScreen } from './src/features/daily/DailyScreen';
 import { SocialScreen } from './src/features/social/SocialScreen';
-import { ProgressMVP } from './src/features/progress/ProgressMVP';
+import { ProgressMVPEnhanced } from './src/features/progress/ProgressMVPEnhanced';
 import { ProfileEnhanced } from './src/features/profile/ProfileEnhanced';
 import { OnboardingFlow } from './src/features/onboarding';
 
@@ -76,7 +76,7 @@ const MainTabs = () => {
               </View>
             )
           }} />
-        <Tab.Screen name="Progress" component={ProgressMVP}
+        <Tab.Screen name="Progress" component={ProgressMVPEnhanced}
           options={{ 
             tabBarIcon: ({color,size,focused}) => (
               <View style={{

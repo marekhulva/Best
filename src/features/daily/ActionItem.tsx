@@ -24,7 +24,8 @@ interface ActionItemProps {
   goalTitle?: string;
   done?: boolean;
   streak: number;
-  type?: 'goal' | 'performance' | 'commitment' | 'oneTime';
+  time?: string;
+  type?: 'goal' | 'performance' | 'commitment' | 'oneTime' | 'one-time';
   goalColor?: string;
 }
 
@@ -34,6 +35,7 @@ export const ActionItem: React.FC<ActionItemProps> = ({
   goalTitle, 
   done = false, 
   streak,
+  time,
   type = 'goal',
   goalColor
 }) => {
@@ -175,7 +177,15 @@ export const ActionItem: React.FC<ActionItemProps> = ({
             
             {/* Content */}
             <View style={styles.content}>
-              <Text style={[styles.title, done && styles.titleDone]}>{title}</Text>
+              <View style={styles.titleRow}>
+                <Text style={[styles.title, done && styles.titleDone]}>{title}</Text>
+                {time && (
+                  <View style={styles.timeBadge}>
+                    <Clock size={12} color={done ? LuxuryTheme.colors.text.muted : LuxuryTheme.colors.primary.gold} />
+                    <Text style={[styles.timeText, done && styles.timeTextDone]}>{time}</Text>
+                  </View>
+                )}
+              </View>
               
               <View style={styles.metaRow}>
                 {goalTitle && (
@@ -258,16 +268,43 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
   title: { 
     color: LuxuryTheme.colors.text.primary,
     fontSize: 15,
     fontWeight: '500',
-    marginBottom: 6,
     letterSpacing: 0.2,
+    flex: 1,
+    marginRight: 8,
   },
   titleDone: {
     color: LuxuryTheme.colors.text.tertiary,
     textDecorationLine: 'line-through',
+  },
+  timeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 215, 0, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.15)',
+  },
+  timeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: LuxuryTheme.colors.primary.gold,
+    letterSpacing: 0.3,
+  },
+  timeTextDone: {
+    color: LuxuryTheme.colors.text.muted,
   },
   metaRow: {
     flexDirection: 'row',

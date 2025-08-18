@@ -214,7 +214,22 @@ export const DailyScreen = () => {
           
           {actions.length > 0 ? (
             <View style={styles.actionsList}>
-              {actions.map((action, index) => (
+              {actions
+                .sort((a, b) => {
+                  // Sort by time (earliest first)
+                  if (!a.time && !b.time) return 0;
+                  if (!a.time) return 1; // Actions without time go to the end
+                  if (!b.time) return -1;
+                  
+                  // Convert time strings (HH:MM) to comparable numbers
+                  const timeA = a.time.split(':').map(Number);
+                  const timeB = b.time.split(':').map(Number);
+                  const minutesA = timeA[0] * 60 + timeA[1];
+                  const minutesB = timeB[0] * 60 + timeB[1];
+                  
+                  return minutesA - minutesB;
+                })
+                .map((action, index) => (
                 <Animated.View
                   key={action.id}
                   entering={FadeInDown.delay(250 + index * 50).springify()}
@@ -225,6 +240,8 @@ export const DailyScreen = () => {
                     goalTitle={action.goalTitle} 
                     done={action.done} 
                     streak={action.streak}
+                    time={action.time}
+                    type={action.type}
                   />
                 </Animated.View>
               ))}
