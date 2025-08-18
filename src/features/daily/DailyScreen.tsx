@@ -128,13 +128,11 @@ export const DailyScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Time-based Greeting */}
+        {/* Date Display */}
         <Animated.View 
           entering={FadeInDown.duration(500).springify()}
           style={styles.greetingContainer}
         >
-          <Text style={styles.emoji}>{emoji}</Text>
-          <Text style={styles.greeting}>{greeting}</Text>
           <Text style={styles.date}>
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
           </Text>
@@ -155,8 +153,8 @@ export const DailyScreen = () => {
           <Animated.View style={[styles.progressRing, progressRingStyle]}>
             <RadialProgress 
               progress={progress} 
-              size={160} 
-              strokeWidth={6}
+              size={120} 
+              strokeWidth={5}
               color={progress === 100 ? '#FFD700' : '#FFFFFF'}
             />
           </Animated.View>
@@ -246,20 +244,18 @@ export const DailyScreen = () => {
         </View>
 
         {/* Review CTA - Simplified */}
-        {(new Date().getHours() >= 18 || allCompleted) && (
-          <Animated.View 
-            entering={FadeInDown.delay(400).springify()}
-            style={styles.reviewContainer}
+        <Animated.View 
+          entering={FadeInDown.delay(400).springify()}
+          style={styles.reviewContainer}
+        >
+          <HapticButton 
+            onPress={openReview} 
+            style={styles.reviewButton}
+            hapticType="medium"
           >
-            <HapticButton 
-              onPress={openReview} 
-              style={styles.reviewButton}
-              hapticType="medium"
-            >
-              <Text style={styles.reviewText}>Review Day</Text>
-            </HapticButton>
-          </Animated.View>
-        )}
+            <Text style={styles.reviewText}>Review Day</Text>
+          </HapticButton>
+        </Animated.View>
       </ScrollView>
 
       <DailyReviewModal />
@@ -295,27 +291,17 @@ const styles = StyleSheet.create({
   },
   greetingContainer: {
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  emoji: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  greeting: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
+    marginBottom: 24,
   },
   date: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 4,
+    fontSize: 20,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   heroCard: {
     borderRadius: 20,
-    padding: 20,
+    padding: 16,
     marginBottom: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderWidth: 1,
@@ -326,14 +312,14 @@ const styles = StyleSheet.create({
   progressRing: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   statItem: {
     flex: 1,

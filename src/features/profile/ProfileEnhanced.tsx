@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, Dimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Animated, {
@@ -9,10 +9,13 @@ import Animated, {
   withRepeat,
   interpolate,
   Easing,
+  FadeIn,
+  FadeInDown,
 } from 'react-native-reanimated';
 import { 
   Trophy, Flame, Target, TrendingUp, Star, 
-  Award, Calendar, Users, Heart, MessageCircle 
+  Award, Calendar, Users, Heart, MessageCircle,
+  Lock, Camera, Mic, CheckCircle, Grid3x3
 } from 'lucide-react-native';
 import { LuxuryGradientBackground } from '../../ui/LuxuryGradientBackground';
 import { GoldParticles } from '../../ui/GoldParticles';
@@ -23,18 +26,77 @@ import { LuxuryTheme } from '../../design/luxuryTheme';
 
 const { width } = Dimensions.get('window');
 
+// Define the action grid item type
+interface GridAction {
+  id: string;
+  type: 'check' | 'photo' | 'audio' | 'milestone';
+  title: string;
+  completedAt: Date;
+  mediaUrl?: string;
+  isPrivate: boolean;
+  category: string;
+  streak?: number;
+}
+
 export const ProfileEnhanced = () => {
   const profile = useStore(s => s.profile);
   const goals = useStore(s => s.goals);
   const circleFeed = useStore(s => s.circleFeed);
+  const completedActions = useStore(s => s.completedActions);
+  const [selectedAction, setSelectedAction] = useState<GridAction | null>(null);
   
   // Get user's own posts
   const userPosts = circleFeed.filter(post => post.user === (profile?.name || 'User'));
   const pinnedPosts = userPosts.slice(0, 2); // First 2 as pinned
   const recentPosts = userPosts.slice(2, 5); // Next 3 as recent
   
+  // Convert completed actions to grid format
+  const gridActions: GridAction[] = completedActions.map((action) => ({
+    id: action.id,
+    type: action.type,
+    title: action.title,
+    completedAt: action.completedAt,
+    mediaUrl: action.mediaUrl,
+    isPrivate: action.isPrivate,
+    category: action.category || 'fitness',
+    streak: action.streak,
+  }));
+  
+  // Add mock data if we don't have enough completed actions yet
+  const mockData = Array(Math.max(0, 12 - gridActions.length)).fill(null).map((_, i) => ({
+    id: `mock-${i}`,
+    type: i % 3 === 0 ? 'photo' : i % 2 === 0 ? 'audio' : 'check' as const,
+    title: ['Morning Workout', 'Meditation', 'Reading', 'Journaling'][i % 4],
+    completedAt: new Date(Date.now() - i * 86400000),
+    mediaUrl: i % 3 === 0 ? `https://picsum.photos/400/400?random=${i + 100}` : undefined,
+    isPrivate: i % 4 === 0,
+    category: ['fitness', 'mindfulness', 'learning', 'health'][i % 4],
+    streak: Math.floor(Math.random() * 30),
+  }));
+  
+  // Combine real and mock data, showing most recent first
+  const allGridActions = [...gridActions, ...mockData]
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+    .slice(0, 12);
+  
   const glowAnim = useSharedValue(0);
   const pulseAnim = useSharedValue(0);
+  
+  // Helper function to get category gradient colors - luxury aesthetic
+  const getCategoryGradient = (category: string): string[] => {
+    switch (category) {
+      case 'fitness':
+        return ['rgba(255, 215, 0, 0.15)', 'rgba(255, 215, 0, 0.05)']; // Gold fade
+      case 'mindfulness':
+        return ['rgba(192, 192, 192, 0.15)', 'rgba(192, 192, 192, 0.05)']; // Silver fade
+      case 'health':
+        return ['rgba(231, 180, 58, 0.15)', 'rgba(231, 180, 58, 0.05)']; // Champagne fade
+      case 'learning':
+        return ['rgba(229, 228, 226, 0.15)', 'rgba(229, 228, 226, 0.05)']; // Platinum fade
+      default:
+        return ['rgba(18, 23, 28, 0.9)', 'rgba(18, 23, 28, 0.7)']; // Deep black
+    }
+  };
 
   React.useEffect(() => {
     glowAnim.value = withRepeat(
@@ -158,6 +220,101 @@ export const ProfileEnhanced = () => {
               </View>
             </BlurView>
           </Animated.View>
+
+          {/* ACHIEVEMENT GRID - Instagram Style */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Grid3x3 size={20} color="#FFD700" />
+              <Text style={styles.sectionTitle}>Achievement Gallery</Text>
+              <View style={styles.gridStats}>
+                <Text style={styles.gridStatsText}>{allGridActions.length} actions</Text>
+              </View>
+            </View>
+
+            <View style={styles.achievementGrid}>
+              {allGridActions.map((action, index) => (
+                <Animated.View
+                  key={action.id}
+                  entering={FadeInDown.delay(index * 50).springify()}
+                >
+                  <Pressable
+                    style={styles.gridItem}
+                    onPress={() => setSelectedAction(action)}
+                  >
+                    {/* Background based on type */}
+                    {action.type === 'photo' && action.mediaUrl ? (
+                      <>
+                        <Image source={{ uri: action.mediaUrl }} style={styles.gridImage} />
+                        <LinearGradient
+                          colors={['transparent', 'rgba(0,0,0,0.3)']}
+                          style={styles.gridImageOverlay}
+                        />
+                      </>
+                    ) : action.type === 'audio' ? (
+                      <>
+                        <LinearGradient
+                          colors={['rgba(0,0,0,0.95)', 'rgba(18,23,28,0.9)']}
+                          style={styles.gridGradient}
+                        />
+                        <View style={styles.gridBorder} />
+                        <View style={styles.gridIconGlow}>
+                          <Mic size={28} color={LuxuryTheme.colors.primary.silver} />
+                        </View>
+                        <Text style={styles.gridAudioDuration}>2:45</Text>
+                      </>
+                    ) : action.type === 'milestone' ? (
+                      <>
+                        <LinearGradient
+                          colors={[LuxuryTheme.colors.primary.gold, LuxuryTheme.colors.primary.champagne]}
+                          style={styles.gridGradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                        />
+                        <View style={styles.gridIconContainer}>
+                          <Trophy size={30} color="#000000" />
+                        </View>
+                        <Text style={styles.gridMilestoneText}>Day {action.streak}</Text>
+                      </>
+                    ) : (
+                      <>
+                        <LinearGradient
+                          colors={['rgba(0,0,0,0.95)', 'rgba(18,23,28,0.9)']}
+                          style={styles.gridGradient}
+                        />
+                        <View style={styles.gridBorder} />
+                        <View style={styles.gridIconGlow}>
+                          <CheckCircle size={28} color={LuxuryTheme.colors.primary.gold} />
+                        </View>
+                        <Text style={styles.gridActionTitle} numberOfLines={2}>
+                          {action.title}
+                        </Text>
+                      </>
+                    )}
+                    
+                    {/* Private lock icon */}
+                    {action.isPrivate && (
+                      <View style={styles.privateLock}>
+                        <Lock size={12} color={LuxuryTheme.colors.primary.gold} />
+                      </View>
+                    )}
+                    
+                    {/* Streak badge for high streaks */}
+                    {action.streak && action.streak >= 7 && (
+                      <View style={styles.streakBadgeSmall}>
+                        <Flame size={10} color="#FFD700" />
+                        <Text style={styles.streakBadgeText}>{action.streak}</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                </Animated.View>
+              ))}
+            </View>
+
+            {/* View All Button */}
+            <Pressable style={styles.viewAllButton}>
+              <Text style={styles.viewAllText}>View All Actions</Text>
+            </Pressable>
+          </View>
 
           {/* CURRENT JOURNEY - What I'm Building */}
           <View style={styles.section}>
@@ -668,5 +825,138 @@ const styles = StyleSheet.create({
   timelineEvent: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
+  },
+
+  // Achievement Grid Styles (Instagram-like)
+  gridStats: {
+    marginLeft: 'auto',
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  gridStatsText: {
+    fontSize: 11,
+    color: '#FFD700',
+    fontWeight: '600',
+  },
+  achievementGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 2,
+    marginBottom: 16,
+  },
+  gridItem: {
+    width: 110,
+    height: 110,
+    backgroundColor: '#000000',
+    borderRadius: 8,
+    overflow: 'hidden',
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  gridImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  gridGradient: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gridImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  gridBorder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.1)',
+    borderRadius: 8,
+  },
+  gridIconGlow: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  gridIconContainer: {
+    padding: 4,
+  },
+  gridActionTitle: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 4,
+    paddingHorizontal: 6,
+    letterSpacing: 0.2,
+  },
+  gridAudioDuration: {
+    fontSize: 12,
+    color: LuxuryTheme.colors.primary.silver,
+    marginTop: 4,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  gridMilestoneText: {
+    fontSize: 12,
+    color: '#000000',
+    fontWeight: '900',
+    marginTop: 2,
+    letterSpacing: 0.5,
+  },
+  privateLock: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    borderRadius: 10,
+    padding: 4,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+  streakBadgeSmall: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+  streakBadgeText: {
+    fontSize: 10,
+    color: '#FFD700',
+    fontWeight: '700',
+  },
+  viewAllButton: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
   },
 });

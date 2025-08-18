@@ -34,7 +34,29 @@ export const SocialScreen = () => {
   const setFeedView = useStore(s=>s.setFeedView);
   const circle = useStore(s=>s.circleFeed);
   const follow = useStore(s=>s.followFeed);
-  const posts: Post[] = feedView==='circle'?circle:follow;
+  const completedActions = useStore(s=>s.completedActions);
+  const profile = useStore(s=>s.profile);
+  
+  // Add public completed actions to the feed
+  const publicActions = completedActions.filter(ca => !ca.isPrivate);
+  const actionPosts: Post[] = publicActions.map(ca => ({
+    id: `action-${ca.id}`,
+    user: profile?.name || 'You',
+    type: 'checkin',
+    actionTitle: ca.title,
+    goal: ca.goalTitle,
+    streak: ca.streak,
+    reactions: [],
+    time: new Date(ca.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    goalColor: LuxuryTheme.colors.primary.gold,
+  }));
+  
+  // Combine posts with public completed actions
+  const combinedCircle = [...actionPosts, ...circle]
+    .sort(() => Math.random() - 0.5) // Mix them up for variety
+    .slice(0, 20); // Limit to prevent too many items
+  
+  const posts: Post[] = feedView==='circle'?combinedCircle:follow;
   const openShare = useStore(s=>s.openShare);
   const react = useStore(s=>s.react);
   

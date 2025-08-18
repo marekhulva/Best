@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Flame, Trophy, Zap, CheckCircle2, Circle, Target, Clock } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -16,6 +16,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { LuxuryTheme } from '../../design/luxuryTheme';
+import { PrivacySelectionModal } from './PrivacySelectionModal';
 
 interface ActionItemProps {
   id: string;
@@ -38,6 +39,8 @@ export const ActionItem: React.FC<ActionItemProps> = ({
 }) => {
   const toggle = useStore(s => s.toggleAction);
   const openShare = useStore(s => s.openShare);
+  const addCompletedAction = useStore(s => s.addCompletedAction);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const scaleAnimation = useSharedValue(1);
   const streakGlow = useSharedValue(0);
   const checkAnimation = useSharedValue(done ? 1 : 0);
@@ -81,22 +84,63 @@ export const ActionItem: React.FC<ActionItemProps> = ({
   };
 
   const handleToggle = () => {
+    if (!done) {
+      // Show privacy modal when completing an action
+      console.log('Opening privacy modal for action:', title);
+      setShowPrivacyModal(true);
+    } else {
+      // Allow unchecking
+      toggle(id);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+  const handlePrivacySelect = (visibility: 'public' | 'private', contentType: 'photo' | 'audio' | 'text' | 'check') => {
+    // Mark action as complete
     toggle(id);
-    Haptics.impactAsync(done ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
-    // Offer share after completion
-    if (!done && streak > 0) {
+    // Map content type to action type
+    const actionType = contentType === 'photo' ? 'photo' : 
+                      contentType === 'audio' ? 'audio' : 
+                      contentType === 'text' ? 'milestone' : // Text becomes milestone type for variety
+                      'check';
+    
+    // Generate mock media URL for photos (in real app, would capture actual photo)
+    const mediaUrl = contentType === 'photo' 
+      ? `https://picsum.photos/400/400?random=${Date.now()}` 
+      : undefined;
+    
+    // Store the completed action with privacy setting and content type
+    addCompletedAction({
+      id: `${id}-${Date.now()}`,
+      actionId: id,
+      title,
+      goalTitle,
+      completedAt: new Date(),
+      isPrivate: visibility === 'private',
+      streak: streak + 1,
+      type: actionType,
+      mediaUrl,
+      category: 'fitness', // Could be dynamic based on goal
+    });
+    
+    // If public and not just a check, trigger share modal
+    if (visibility === 'public' && contentType !== 'check') {
       setTimeout(() => {
         openShare({
-          type:'checkin',
-          visibility:'circle',
+          type: 'checkin',
+          visibility: 'circle',
           actionTitle: title,
           goal: goalTitle,
           streak: streak + 1,
           goalColor: goalColor || LuxuryTheme.colors.primary.gold,
+          contentType,
         });
       }, 500);
     }
+    
+    setShowPrivacyModal(false);
   };
 
   return (
@@ -169,6 +213,15 @@ export const ActionItem: React.FC<ActionItemProps> = ({
           </View>
         </View>
       </TouchableOpacity>
+      
+      {/* Privacy Selection Modal */}
+      <PrivacySelectionModal
+        visible={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        onSelect={handlePrivacySelect}
+        actionTitle={title}
+        streak={streak}
+      />
     </Animated.View>
   );
 };
