@@ -24,12 +24,10 @@ import { LuxuryTheme } from '../../design/luxuryTheme';
 
 const { width } = Dimensions.get('window');
 
-type Period = 'day' | 'week' | 'month' | 'year';
 type MainTab = 'personal' | 'circle';
 
 export const ProgressEnhanced = () => {
   const [mainTab, setMainTab] = useState<MainTab>('personal');
-  const [selectedPeriod, setPeriod] = useState<Period>('week');
   const goals = useStore(s => s.goals);
   const actions = useStore(s => s.actions);
   
@@ -164,26 +162,6 @@ export const ProgressEnhanced = () => {
                 </View>
               </Animated.View>
 
-              {/* Period Selector */}
-              <View style={styles.periodSelector}>
-                {(['day', 'week', 'month', 'year'] as Period[]).map(period => (
-                  <Pressable
-                    key={period}
-                    onPress={() => setPeriod(period)}
-                    style={[
-                      styles.periodButton,
-                      selectedPeriod === period && styles.periodButtonActive,
-                    ]}
-                  >
-                    <Text style={[
-                      styles.periodText,
-                      selectedPeriod === period && styles.periodTextActive,
-                    ]}>
-                      {period.charAt(0).toUpperCase() + period.slice(1)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
 
               {/* Quick Stats */}
               <View style={styles.quickStats}>
@@ -588,33 +566,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255,255,255,0.7)',
     fontWeight: '600',
-  },
-
-  // Period Selector
-  periodSelector: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 20,
-  },
-  periodButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(192,192,192,0.1)',
-  },
-  periodButtonActive: {
-    backgroundColor: 'rgba(255,215,0,0.15)',
-    borderColor: 'rgba(255,215,0,0.3)',
-  },
-  periodText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
-    fontWeight: '600',
-  },
-  periodTextActive: {
-    color: '#FFD700',
   },
 
   // Quick Stats

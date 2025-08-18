@@ -159,12 +159,6 @@ export const DailyScreen = () => {
               strokeWidth={6}
               color={progress === 100 ? '#FFD700' : '#FFFFFF'}
             />
-            
-            {/* Center Stats */}
-            <View style={styles.progressCenter}>
-              <Text style={styles.progressPercentage}>{Math.round(progress)}</Text>
-              <Text style={styles.progressPercentSymbol}>%</Text>
-            </View>
           </Animated.View>
           
           {/* Quick Stats Row */}
@@ -333,22 +327,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
-  },
-  progressCenter: {
-    position: 'absolute',
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  progressPercentage: {
-    fontSize: 48,
-    fontWeight: '200',
-    color: '#FFFFFF',
-  },
-  progressPercentSymbol: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginLeft: 2,
   },
   statsRow: {
     flexDirection: 'row',

@@ -196,8 +196,12 @@ export const SocialScreen = () => {
                   entering={FadeIn.duration(600)}
                   style={styles.emptyState}
                 >
-                  <View style={styles.emptyIcon}>
-                    <Users size={40} color="rgba(255, 255, 255, 0.2)" />
+                  <View style={styles.emptyIconContainer}>
+                    <LinearGradient
+                      colors={['rgba(255, 215, 0, 0.1)', 'rgba(255, 215, 0, 0.05)']}
+                      style={styles.emptyIconGradient}
+                    />
+                    <Users size={40} color="rgba(255, 255, 255, 0.3)" />
                   </View>
                   <Text style={styles.emptyTitle}>
                     {feedView === 'circle' ? 'Your Circle is Quiet' : 'No Posts Yet'}
@@ -207,6 +211,7 @@ export const SocialScreen = () => {
                       ? 'Be the first to share your progress!' 
                       : 'Follow more people to see their journey'}
                   </Text>
+                  <Animated.View style={[styles.emptyPulse, pulseStyle]} />
                 </Animated.View>
               ) : (
                 posts.map((p, index) => (
@@ -257,6 +262,35 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  energyGrid: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  floatingOrb1: {
+    position: 'absolute',
+    top: 100,
+    left: 50,
+    width: 150,
+    height: 150,
+  },
+  floatingOrb2: {
+    position: 'absolute',
+    top: 300,
+    right: 30,
+    width: 120,
+    height: 120,
+  },
+  orb: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 100,
+  },
+  particle: {
+    position: 'absolute',
+    width: 3,
+    height: 3,
+    backgroundColor: '#FFD700',
+    borderRadius: 1.5,
+  },
   glowOverlay: {
     ...StyleSheet.absoluteFillObject,
   },
@@ -266,9 +300,32 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    overflow: 'hidden',
+  },
+  headerBlur: {
     paddingTop: 10,
     paddingBottom: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  headerGlow: {
+    position: 'absolute',
+    top: -50,
+    left: -50,
+    right: -50,
+    height: 150,
+    backgroundColor: '#FFD700',
+    borderRadius: 100,
+  },
+  shimmer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  shimmerGradient: {
+    width: width * 0.5,
+    height: '100%',
   },
   liveHeader: {
     position: 'absolute',
@@ -350,19 +407,36 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 215, 0, 0.03)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 215, 0, 0.02)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.1)',
+    borderColor: 'rgba(255, 215, 0, 0.15)',
+    overflow: 'hidden',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  socialProofIcon: {
+    marginRight: 4,
   },
   socialProofText: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500',
   },
   socialProofHighlight: {
     color: '#FFD700',
     fontWeight: '700',
+    textShadowColor: '#FFD700',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  },
+  socialProofStars: {
+    flexDirection: 'row',
+    gap: 2,
   },
   urgencyMessage: {
     flexDirection: 'row',
@@ -420,22 +494,42 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 12,
   },
+  feedTitleContainer: {
+    position: 'relative',
+  },
+  feedTitleGlow: {
+    position: 'absolute',
+    top: -10,
+    left: -20,
+    right: -20,
+    bottom: -10,
+    backgroundColor: '#FFD700',
+    borderRadius: 20,
+  },
   feedTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.5)',
-    letterSpacing: 1.5,
+    color: 'rgba(255, 255, 255, 0.6)',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   feedBadge: {
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.2)',
+    overflow: 'hidden',
   },
   feedBadgeText: {
     fontSize: 10,
     fontWeight: '700',
     color: '#FFD700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -500,20 +594,46 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
+    position: 'relative',
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    position: 'relative',
+  },
+  emptyIconGradient: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   emptyIcon: {
     marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 6,
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: 'rgba(255, 255, 255, 0.5)',
     textAlign: 'center',
+    lineHeight: 20,
+  },
+  emptyPulse: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: '#FFD700',
+    top: -60,
+    zIndex: -1,
   },
   loadMoreContainer: {
     flexDirection: 'row',
