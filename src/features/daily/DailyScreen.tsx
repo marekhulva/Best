@@ -22,6 +22,7 @@ import { ConfettiView } from '../../ui/ConfettiView';
 import { DailyReviewModal } from './DailyReviewModalEnhanced';
 import { ActionItem } from './ActionItem';
 import { SocialSharePrompt } from '../social/SocialSharePrompt';
+import { ShareComposer } from '../social/ShareComposer';
 import { Sparkles, Zap, Trophy, TrendingUp, Clock, Calendar, Target } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -284,6 +285,7 @@ export const DailyScreen = () => {
         totalActions={actions.length}
         streak={currentStreak}
       />
+      <ShareComposer />
       <ConfettiView active={allCompleted} />
     </View>
   );

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Post Creation</title>
+</head>
+<body>
+    <h1>Test Direct Post Creation</h1>
+    <button onclick="createPost()">Create Test Post</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function createPost() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                document.getElementById('result').innerText = 'No auth token found. Login first in the app.';
+                return;
+            }
+
+            const post = {
+                type: 'status',
+                visibility: 'circle',
+                content: 'This is a test post with actual content from the test page!'
+            };
+
+            try {
+                const response = await fetch('http://localhost:3001/api/posts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(post)
+                });
+
+                const data = await response.json();
+                document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('result').innerText = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import { StateCreator } from 'zustand';
+import { apiService } from '../../services/api.service';
 
 export type ActionItem = { 
   id: string; 
@@ -26,19 +27,86 @@ export type CompletedAction = {
 export type DailySlice = {
   actions: ActionItem[];
   completedActions: CompletedAction[];
-  toggleAction: (id:string)=>void;
-  addAction: (a:ActionItem)=>void;
-  addCompletedAction: (ca: CompletedAction)=>void;
+  actionsLoading: boolean;
+  actionsError: string | null;
+  fetchDailyActions: () => Promise<void>;
+  toggleAction: (id: string) => Promise<void>;
+  addAction: (a: Partial<ActionItem>) => Promise<void>;
+  addCompletedAction: (ca: CompletedAction) => void;
 };
 
-export const createDailySlice: StateCreator<DailySlice> = (set) => ({
+export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
   actions: [],
   completedActions: [],
-  toggleAction: (id) => set((s)=>({ 
-    actions: s.actions.map(a => a.id===id ? ({...a, done: !a.done, streak: a.done ? a.streak : a.streak+1}) : a) 
-  })),
-  addAction: (a) => set((s)=>({ actions: [...s.actions, a] })),
-  addCompletedAction: (ca) => set((s)=>({ 
+  actionsLoading: false,
+  actionsError: null,
+  
+  fetchDailyActions: async () => {
+    set({ actionsLoading: true, actionsError: null });
+    try {
+      const response = await apiService.getDailyActions();
+      if (response.success) {
+        const actions = (response.data || []).map((a: any) => ({
+          id: a.id,
+          title: a.title,
+          goalTitle: a.goal?.title,
+          type: 'commitment' as const,
+          time: a.time,
+          streak: 0,
+          done: a.done
+        }));
+        set({ actions, actionsLoading: false });
+      } else {
+        set({ actionsError: response.error, actionsLoading: false });
+      }
+    } catch (error: any) {
+      set({ actionsError: error.message, actionsLoading: false });
+    }
+  },
+  
+  toggleAction: async (id) => {
+    try {
+      const response = await apiService.completeAction(id);
+      if (response.success) {
+        set((s) => ({
+          actions: s.actions.map(a => 
+            a.id === id 
+              ? { ...a, done: true, streak: a.streak + 1 } 
+              : a
+          )
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to complete action:', error);
+    }
+  },
+  
+  addAction: async (actionData) => {
+    try {
+      const response = await apiService.createAction({
+        title: actionData.title || '',
+        time: actionData.time,
+        goalId: undefined // Add goalId mapping if needed
+      });
+      
+      if (response.success && response.data) {
+        const newAction: ActionItem = {
+          id: response.data.id,
+          title: response.data.title,
+          goalTitle: response.data.goal?.title,
+          type: 'commitment',
+          time: response.data.time,
+          streak: 0,
+          done: false
+        };
+        set((s) => ({ actions: [...s.actions, newAction] }));
+      }
+    } catch (error) {
+      console.error('Failed to add action:', error);
+    }
+  },
+  
+  addCompletedAction: (ca) => set((s) => ({ 
     completedActions: [...s.completedActions, ca] 
   })),
 });

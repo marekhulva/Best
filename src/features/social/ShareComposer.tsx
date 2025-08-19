@@ -15,21 +15,31 @@ export const ShareComposer: React.FC = () => {
   const addPost = useStore(s=>s.addPost);
   const setFeedView = useStore(s=>s.setFeedView);
 
-  const [text, setText] = React.useState(draft?.text || '');
-  const [photoUri, setPhotoUri] = React.useState<string|undefined>(draft?.photoUri);
+  const [text, setText] = React.useState('');
+  const [photoUri, setPhotoUri] = React.useState<string|undefined>(undefined);
   const [recording, setRecording] = React.useState<Audio.Recording | null>(null);
-  const [audioUri, setAudioUri] = React.useState<string|undefined>(draft?.audioUri);
-  const [visibility, setVisibility] = React.useState<Visibility>(draft?.visibility || 'circle');
+  const [audioUri, setAudioUri] = React.useState<string|undefined>(undefined);
+  const [visibility, setVisibility] = React.useState<Visibility>('circle');
   const [busy, setBusy] = React.useState(false);
+  
+  // Use a ref to track the text value as a workaround for web
+  const textRef = React.useRef('');
 
   React.useEffect(()=> {
-    if (shareOpen) {
+    if (shareOpen && draft) {
+      // Only reset when opening, not on every render
       setText(draft?.text || (draft?.promptSeed ? draft?.promptSeed + ' ' : ''));
       setPhotoUri(draft?.photoUri);
       setAudioUri(draft?.audioUri);
       setVisibility(draft?.visibility || 'circle');
+    } else if (!shareOpen) {
+      // Clear when closing
+      setText('');
+      setPhotoUri(undefined);
+      setAudioUri(undefined);
+      setVisibility('circle');
     }
-  }, [shareOpen]);
+  }, [shareOpen, draft?.promptSeed]);
 
   const pickImage = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, base64:false, allowsEditing:true, quality:0.9 });
@@ -62,29 +72,42 @@ export const ShareComposer: React.FC = () => {
 
   const publish = async () => {
     if (!draft) return;
-    const id = Date.now().toString();
-    const base = {
-      id,
-      user: 'You',
-      avatar: '👤',
-      time: 'now',
-      reactions: {} as Record<string, number>,
-      visibility,
-    };
     const type = draft.type;
-    const content = text?.trim() || (type==='checkin' ? `Checked in: ${draft.actionTitle}` : '');
+    
+    // Use the ref value which should have the latest text
+    const finalText = textRef.current || text;
+    
+    console.log('Current text state:', text);
+    console.log('Text from ref:', textRef.current);
+    console.log('Draft:', draft);
+    
+    const content = finalText?.trim() || (type==='checkin' ? `Checked in: ${draft.actionTitle}` : '');
+    
+    console.log('Publishing post with content:', content);
+    console.log('Text from input:', finalText);
+    
     const post = {
-      ...base,
       type,
+      visibility,
       content,
+      mediaUrl: photoUri || audioUri || undefined,
       photoUri: type==='photo' || photoUri ? photoUri : undefined,
       audioUri: type==='audio' || audioUri ? audioUri : undefined,
       actionTitle: draft.actionTitle,
-      goal: draft.goal,
+      goalTitle: draft.goal,
       streak: draft.streak,
       goalColor: draft.goalColor,
     };
-    addPost(post as any);
+    
+    console.log('Full post object:', post);
+    
+    // Call the async addPost function to save to backend
+    await addPost(post as any);
+    
+    // Fetch updated feeds to show the new post
+    const fetchFeeds = useStore.getState().fetchFeeds;
+    await fetchFeeds();
+    
     // show in selected tab
     setFeedView(visibility);
     close();
@@ -115,12 +138,25 @@ export const ShareComposer: React.FC = () => {
 
           {/* Text */}
           <TextInput
-            value={text}
-            onChangeText={setText}
+            defaultValue=""
+            onChangeText={(newText) => {
+              console.log('Text changed to:', newText);
+              setText(newText);
+              textRef.current = newText; // Also update ref
+            }}
+            onEndEditing={(e) => {
+              console.log('End editing with text:', e.nativeEvent.text);
+              setText(e.nativeEvent.text);
+              textRef.current = e.nativeEvent.text;
+            }}
             placeholder={draft?.promptSeed ?? "Add a note..."}
             placeholderTextColor="rgba(255,255,255,0.5)"
-            multiline
+            multiline={true}
+            numberOfLines={4}
             style={styles.input}
+            autoFocus={false}
+            editable={true}
+            keyboardType="default"
           />
 
           {/* Photo preview */}

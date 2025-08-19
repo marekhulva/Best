@@ -39,14 +39,15 @@ interface GridAction {
 }
 
 export const ProfileEnhanced = () => {
-  const profile = useStore(s => s.profile);
+  const user = useStore(s => s.user);
   const goals = useStore(s => s.goals);
   const circleFeed = useStore(s => s.circleFeed);
   const completedActions = useStore(s => s.completedActions);
+  const logout = useStore(s => s.logout);
   const [selectedAction, setSelectedAction] = useState<GridAction | null>(null);
   
   // Get user's own posts
-  const userPosts = circleFeed.filter(post => post.user === (profile?.name || 'User'));
+  const userPosts = circleFeed.filter(post => post.user === (user?.name || 'User'));
   const pinnedPosts = userPosts.slice(0, 2); // First 2 as pinned
   const recentPosts = userPosts.slice(2, 5); // Next 3 as recent
   
@@ -168,7 +169,7 @@ export const ProfileEnhanced = () => {
                 />
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
-                    {profile?.name?.charAt(0) || 'U'}
+                    {user?.name?.charAt(0) || 'U'}
                   </Text>
                 </View>
                 {/* Streak flame badge */}
@@ -178,7 +179,7 @@ export const ProfileEnhanced = () => {
                 </View>
               </View>
 
-              <Text style={styles.profileName}>{profile?.name || 'Achiever'}</Text>
+              <Text style={styles.profileName}>{user?.name || 'Achiever'}</Text>
               <Text style={styles.profileBio}>Building my best self, one day at a time ✨</Text>
 
               {/* Achievement Badges */}
@@ -489,6 +490,16 @@ export const ProfileEnhanced = () => {
         </ScrollView>
       </LuxuryGradientBackground>
       <ResetOnboardingButton />
+      
+      {/* Logout Button */}
+      <Pressable 
+        style={styles.logoutButton}
+        onPress={async () => {
+          await logout();
+        }}
+      >
+        <Text style={styles.logoutText}>Logout</Text>
+      </Pressable>
     </View>
   );
 };
@@ -957,6 +968,24 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+  },
+  
+  // Logout button styles
+  logoutButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 0, 0, 0.3)',
+  },
+  logoutText: {
+    color: '#FF6B6B',
+    fontSize: 14,
     fontWeight: '600',
   },
 });

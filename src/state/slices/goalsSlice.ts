@@ -1,4 +1,5 @@
 import { StateCreator } from 'zustand';
+import { apiService } from '../../services/api.service';
 
 export type Milestone = {
   id: string;
@@ -25,20 +26,59 @@ export type Goal = {
 
 export type GoalsSlice = {
   goals: Goal[];
-  addGoal: (g: Goal)=>void;
+  goalsLoading: boolean;
+  goalsError: string | null;
+  fetchGoals: () => Promise<void>;
+  addGoal: (g: Partial<Goal>) => Promise<void>;
   updateGoalMilestones: (goalId: string, milestones: Milestone[]) => void;
   toggleMilestoneComplete: (goalId: string, milestoneId: string) => void;
 };
 
-export const createGoalsSlice: StateCreator<GoalsSlice> = (set) => ({
+export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
   goals: [],
-  addGoal: (g) => set((s)=>({ goals: [g, ...s.goals] })),
+  goalsLoading: false,
+  goalsError: null,
+  
+  fetchGoals: async () => {
+    set({ goalsLoading: true, goalsError: null });
+    try {
+      const response = await apiService.getGoals();
+      if (response.success) {
+        set({ goals: response.data || [], goalsLoading: false });
+      } else {
+        set({ goalsError: response.error, goalsLoading: false });
+      }
+    } catch (error: any) {
+      set({ goalsError: error.message, goalsLoading: false });
+    }
+  },
+  
+  addGoal: async (goalData) => {
+    try {
+      const response = await apiService.createGoal({
+        title: goalData.title || '',
+        metric: goalData.metric || '',
+        deadline: goalData.deadline || new Date().toISOString(),
+        category: goalData.category,
+        color: goalData.color || '#FFD700',
+        why: goalData.why
+      });
+      
+      if (response.success && response.data) {
+        set((state) => ({ goals: [response.data, ...state.goals] }));
+      }
+    } catch (error) {
+      console.error('Failed to add goal:', error);
+    }
+  },
+  
   updateGoalMilestones: (goalId, milestones) => 
     set((state) => ({
       goals: state.goals.map(g => 
         g.id === goalId ? { ...g, milestones } : g
       )
     })),
+    
   toggleMilestoneComplete: (goalId, milestoneId) =>
     set((state) => ({
       goals: state.goals.map(g => 

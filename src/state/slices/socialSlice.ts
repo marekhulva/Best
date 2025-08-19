@@ -1,4 +1,5 @@
 import { StateCreator } from 'zustand';
+import { apiService } from '../../services/api.service';
 
 export type PostType = 'checkin'|'status'|'photo'|'audio'|'goal';
 export type Visibility = 'circle'|'follow';
@@ -39,107 +40,143 @@ export type Post = {
 export type SocialSlice = {
   circleFeed: Post[]; 
   followFeed: Post[];
-  react: (id:string, emoji:string, which:Visibility)=>void;
-  addPost: (p:Post)=>void; // routes by p.visibility
+  feedLoading: boolean;
+  feedError: string | null;
+  fetchFeeds: () => Promise<void>;
+  react: (id:string, emoji:string, which:Visibility) => Promise<void>;
+  addPost: (p:Partial<Post>) => Promise<void>;
 };
 
 export const createSocialSlice: StateCreator<SocialSlice> = (set) => ({
-  circleFeed: [
-    {
-      id:'p1', user:'Alex', avatar:'🏃', visibility:'circle',
-      type:'checkin', content:'Crushed HIIT 💪', actionTitle:'Morning workout', goal:'Lose 10 lbs', streak:8, goalColor:'#10B981',
-      reactions:{'👏':5,'💪':3,'🔥':4}, time:'2h',
-      streakMetrics: {
-        graceStreak: { done: 13, window: 14, label: '13/14 Grace Streak ✨' },
-        momentum: { score: 85, trend: 'up' },
-        monthProgress: { completed: 18, total: 25 },
-        intensity: 'High'
-      },
-      socialProof: { inspired: 3 }
-    },
-    {
-      id:'p3', user:'Jordan', avatar:'🧘', visibility:'circle',
-      type:'checkin', content:'Finding peace in the chaos', actionTitle:'Evening meditation', goal:'Daily mindfulness', streak:21, goalColor:'#8B5CF6',
-      reactions:{'🙏':8,'✨':5,'💜':3}, time:'4h'
-    },
-    {
-      id:'p5', user:'Taylor', avatar:'📚', visibility:'circle',
-      type:'status', content:'Just finished Chapter 7 of Atomic Habits. Mind = blown 🤯 The compound effect is real!',
-      reactions:{'🧠':6,'💡':4,'👍':7}, time:'5h'
-    },
-    {
-      id:'p7', user:'Cameron', avatar:'🎨', visibility:'circle',
-      type:'photo', content:'Morning light hitting just right ☀️', photoUri:'https://picsum.photos/400/300',
-      reactions:{'😍':12,'🌟':8,'📸':3}, time:'6h'
-    },
-    {
-      id:'p9', user:'Riley', avatar:'💼', visibility:'circle',
-      type:'checkin', content:'Deep work session complete!', actionTitle:'Focus block', goal:'Launch side project', streak:15, goalColor:'#FFD700',
-      reactions:{'🚀':9,'💻':6,'🎯':4}, time:'8h'
-    },
-    {
-      id:'p11', user:'Quinn', avatar:'🍳', visibility:'circle',
-      type:'status', content:'Meal prepped for the entire week! Future me will thank present me 🙌',
-      reactions:{'🥗':10,'💪':5,'👨‍🍳':3}, time:'12h'
-    },
-    {
-      id:'p13', user:'Blake', avatar:'🏔️', visibility:'circle',
-      type:'checkin', content:'5AM club checking in!', actionTitle:'Morning routine', goal:'Build discipline', streak:30, goalColor:'#FF6B6B',
-      reactions:{'🌅':7,'⏰':4,'🔥':11}, time:'1d'
+  circleFeed: [],
+  followFeed: [],
+  feedLoading: false,
+  feedError: null,
+  
+  fetchFeeds: async () => {
+    set({ feedLoading: true, feedError: null });
+    try {
+      // Fetch both feeds in parallel
+      const [circleResponse, followResponse] = await Promise.all([
+        apiService.getFeed('circle'),
+        apiService.getFeed('follow')
+      ]);
+      
+      // Transform API data to match our Post type
+      const transformPost = (post: any): Post => {
+        // Calculate time ago
+        const timeAgo = (date: string) => {
+          const diff = Date.now() - new Date(date).getTime();
+          const minutes = Math.floor(diff / (1000 * 60));
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const days = Math.floor(hours / 24);
+          
+          if (minutes < 1) return 'now';
+          if (minutes < 60) return `${minutes}m`;
+          if (hours < 24) return `${hours}h`;
+          return `${days}d`;
+        };
+        
+        // Parse reactions from database format
+        const reactions: Record<string, number> = {};
+        if (post.reactions) {
+          post.reactions.forEach((r: any) => {
+            reactions[r.emoji] = (reactions[r.emoji] || 0) + 1;
+          });
+        }
+        
+        return {
+          id: post.id,
+          user: post.user?.name || 'Anonymous',
+          avatar: post.user?.avatar || '👤',
+          type: post.type as PostType,
+          visibility: post.visibility as Visibility,
+          content: post.content,
+          time: timeAgo(post.createdAt),
+          reactions,
+          photoUri: post.mediaUrl,
+          audioUri: post.type === 'audio' ? post.mediaUrl : undefined,
+          actionTitle: post.actionTitle,
+          goal: post.goalTitle,
+          streak: post.streak,
+          goalColor: post.goalColor
+        };
+      };
+      
+      if (circleResponse.success) {
+        const circlePosts = (circleResponse.data || []).map(transformPost);
+        set({ circleFeed: circlePosts });
+      }
+      
+      if (followResponse.success) {
+        const followPosts = (followResponse.data || []).map(transformPost);
+        set({ followFeed: followPosts });
+      }
+      
+      set({ feedLoading: false });
+    } catch (error: any) {
+      set({ feedError: error.message, feedLoading: false });
     }
-  ],
-  followFeed: [
-    {
-      id:'p2', user:'Jordan', avatar:'🧑‍🏫', visibility:'follow',
-      type:'status', content:'Hardest thing about today was saying no to sweets 😅', reactions:{'👏':2}, time:'1h'
-    },
-    {
-      id:'p4', user:'Morgan', avatar:'🎯', visibility:'follow',
-      type:'status', content:'Sometimes the biggest win is just showing up. Even when you don\'t feel like it.',
-      reactions:{'💯':15,'❤️':8,'🙌':6}, time:'3h'
-    },
-    {
-      id:'p6', user:'Dakota', avatar:'🌱', visibility:'follow',
-      type:'checkin', content:'Day 1 again, but that\'s okay', actionTitle:'No social media', goal:'Digital detox', streak:1, goalColor:'#06B6D4',
-      reactions:{'💪':18,'🤗':12,'⭐':5}, time:'5h'
-    },
-    {
-      id:'p8', user:'Avery', avatar:'🏋️', visibility:'follow',
-      type:'photo', content:'New PR! 225lbs 🏋️‍♀️', photoUri:'https://picsum.photos/400/400',
-      reactions:{'💪':25,'🔥':20,'🎉':15}, time:'7h'
-    },
-    {
-      id:'p10', user:'Phoenix', avatar:'🎸', visibility:'follow',
-      type:'audio', content:'Late night jam session 🎵', audioUri:'sample.mp3',
-      reactions:{'🎶':8,'🤘':6,'🔥':4}, time:'10h'
-    },
-    {
-      id:'p12', user:'River', avatar:'📖', visibility:'follow',
-      type:'status', content:'The comfort zone is a beautiful place, but nothing ever grows there 🌿',
-      reactions:{'🌱':22,'💭':10,'✨':14}, time:'14h'
-    },
-    {
-      id:'p14', user:'Sage', avatar:'🧘‍♀️', visibility:'follow',
-      type:'checkin', content:'Breathwork changed everything', actionTitle:'Morning breathwork', goal:'Reduce anxiety', streak:45, goalColor:'#A78BFA',
-      reactions:{'🫁':5,'😌':9,'🙏':12}, time:'1d'
-    },
-    {
-      id:'p15', user:'Drew', avatar:'☕', visibility:'follow',
-      type:'status', content:'Coffee first, adulting second ☕ Who else is team caffeine?',
-      reactions:{'☕':30,'😂':15,'🙋':20}, time:'1d'
-    },
-    {
-      id:'p16', user:'Jamie', avatar:'🚴', visibility:'follow',
-      type:'photo', content:'Morning ride through the city 🌆', photoUri:'https://picsum.photos/400/500',
-      reactions:{'🚴':12,'🌄':8,'👌':6}, time:'2d'
+  },
+  
+  react: async (id, emoji, which) => {
+    try {
+      const response = await apiService.reactToPost(id, emoji);
+      if (response.success) {
+        set((s) => ({
+          [which === 'circle' ? 'circleFeed' : 'followFeed']: 
+            (which === 'circle' ? s.circleFeed : s.followFeed).map(p => 
+              p.id === id 
+                ? { ...p, reactions: { ...p.reactions, [emoji]: (p.reactions[emoji] || 0) + 1 } } 
+                : p
+            )
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to react to post:', error);
     }
-  ],
-  react: (id, emoji, which) => set((s)=>({
-    [which==='circle'?'circleFeed':'followFeed']: (which==='circle'?s.circleFeed:s.followFeed).map(p => 
-      p.id===id ? ({...p, reactions:{...p.reactions, [emoji]:(p.reactions[emoji]||0)+1}}) : p)
-  })),
-  addPost: (p) => set((s)=> {
-    if (p.visibility==='circle') return { circleFeed:[p, ...s.circleFeed] };
-    return { followFeed:[p, ...s.followFeed] };
-  }),
+  },
+  
+  addPost: async (postData) => {
+    try {
+      const response = await apiService.createPost({
+        type: postData.type || 'status',
+        visibility: postData.visibility || 'circle',
+        content: postData.content || '',
+        mediaUrl: postData.photoUri || postData.audioUri,
+        actionTitle: postData.actionTitle,
+        goalTitle: postData.goal,
+        goalColor: postData.goalColor,
+        streak: postData.streak
+      });
+      
+      if (response.success && response.data) {
+        const newPost: Post = {
+          id: response.data.id,
+          user: response.data.user?.name || 'You',
+          avatar: response.data.user?.avatar || '👤',
+          type: response.data.type,
+          visibility: response.data.visibility,
+          content: response.data.content,
+          time: 'now',
+          reactions: {},
+          photoUri: response.data.mediaUrl,
+          audioUri: response.data.type === 'audio' ? response.data.mediaUrl : undefined,
+          actionTitle: response.data.actionTitle,
+          goal: response.data.goalTitle,
+          streak: response.data.streak,
+          goalColor: response.data.goalColor
+        };
+        
+        set((s) => {
+          if (newPost.visibility === 'circle') {
+            return { circleFeed: [newPost, ...s.circleFeed] };
+          }
+          return { followFeed: [newPost, ...s.followFeed] };
+        });
+      }
+    } catch (error) {
+      console.error('Failed to create post:', error);
+    }
+  },
 });
