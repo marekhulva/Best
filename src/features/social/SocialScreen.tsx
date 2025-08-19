@@ -164,23 +164,6 @@ export const SocialScreen = () => {
           }}
           scrollEventThrottle={16}
         >
-          {/* Social Proof Banner */}
-          <Animated.View 
-            entering={FadeInDown.duration(500).springify()}
-            style={styles.socialProofBanner}
-          >
-            <LinearGradient
-              colors={['rgba(255, 215, 0, 0.1)', 'rgba(255, 215, 0, 0.05)']}
-              style={StyleSheet.absoluteFillObject}
-            />
-            <Flame size={16} color="#FFD700" />
-            <Text style={styles.socialProofText}>
-              <Text style={styles.socialProofHighlight}>Sarah</Text> just hit a 30-day streak!
-            </Text>
-            <Sparkles size={14} color="#FFD700" />
-          </Animated.View>
-
-          
           {/* Post Prompt Card - Enhanced with urgency */}
           <PostPromptCard
             onOpenComposer={(type) => {
